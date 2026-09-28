@@ -37,8 +37,8 @@ final class CoreFlowUITests: XCTestCase {
         type("Amazon US", into: app.textFields["add.merchant"], in: app)
         tap(app.buttons["add.save"], in: app)
         tap(app.buttons["transaction.Amazon US"], in: app)
-        XCTAssertTrue(app.otherElements["detail.conversion"].waitForExistence(timeout: 5)
-            || app.staticTexts["סה\"כ בחיוב"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["detail.conversion"].firstMatch.waitForExistence(timeout: 5)
+            || app.staticTexts["סה״כ בשקלים"].exists)
         screenshot(app, "transaction-detail-foreign-light")
     }
 
@@ -56,7 +56,7 @@ final class CoreFlowUITests: XCTestCase {
         screenshot(app, "filters-light")
         tap(app.buttons["filter.apply"], in: app)
 
-        XCTAssertTrue(app.staticTexts["expenses.filteredTotal"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["expenses.filteredTotal"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["transaction.שופרסל דיל"].exists, "supermarket expense stays")
         XCTAssertFalse(app.buttons["transaction.ארומה"].exists, "coffee expense is filtered out")
         screenshot(app, "expenses-filtered-light")
@@ -70,6 +70,8 @@ final class CoreFlowUITests: XCTestCase {
         tap(app.buttons["tab.add"], in: app)
         for key in ["4", "9"] { tap(app.buttons["key.\(key)"], in: app) }
         type("Netflix", into: app.textFields["add.merchant"], in: app)
+        tap(app.buttons["add.details"], in: app)
+        screenshot(app, "add-details-light")
         tap(app.descendants(matching: .any)["add.recurring"].firstMatch, in: app)
         XCTAssertTrue(app.buttons["add.frequency.monthly"].waitForExistence(timeout: 5))
         screenshot(app, "add-recurring-light")
@@ -94,7 +96,7 @@ final class CoreFlowUITests: XCTestCase {
         app.buttons["סגירה"].firstMatch.tap()
 
         tap(app.buttons["tab.home"], in: app)
-        XCTAssertTrue(app.otherElements["home.trip"].waitForExistence(timeout: 5) || app.staticTexts["ניו יורק"].exists)
+        XCTAssertTrue(app.descendants(matching: .any)["home.trip"].firstMatch.waitForExistence(timeout: 5))
 
         tap(app.buttons["tab.add"], in: app)
         tap(app.buttons["key.9"], in: app)

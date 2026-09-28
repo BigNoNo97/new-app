@@ -1,8 +1,8 @@
 import SwiftUI
 import SnaPayCore
 
-/// Details of one transaction. Only the person who logged it can edit or delete it
-/// (the server enforces the same rule).
+/// Details of one transaction (design: `detail`). Only the person who logged it can edit or
+/// delete it (the server enforces the same rule).
 struct TransactionDetailView: View {
     @Environment(\.dismiss) private var dismiss
     let store: TransactionStore
@@ -24,112 +24,189 @@ struct TransactionDetailView: View {
     private var category: CategoryItem? { store.category(transaction.categoryID) }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: Spacing.l) {
-                    VStack(spacing: Spacing.s) {
-                        CategoryBadge(category: category, size: 72)
-                        Text(transaction.merchant ?? category?.name ?? "")
-                            .font(.title2.weight(.semibold))
-                        Text(Money.listString(transaction))
-                            .font(.system(size: 40, weight: .semibold, design: .rounded))
-                            .foregroundStyle(transaction.kind == .income ? Theme.income : Color.primary)
-                            .accessibilityIdentifier("detail.amount")
+        VStack(spacing: 0) {
+            ZStack {
+                Text(transaction.kind == .income ? "פרטי הכנסה" : "פרטי הוצאה")
+                    .font(.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                HStack {
+                    IconButton(symbol: "chevron.backward", label: "סגירה") { dismiss() }
+                    Spacer()
+                    if store.canEdit(transaction) {
+                        IconButton(symbol: "pencil", label: "עריכה") { isEditing = true }
+                            .accessibilityIdentifier("detail.edit")
                     }
-                    .padding(.top, Spacing.m)
+                }
+            }
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.top, Spacing.l)
 
-                    GlassCard {
-                        VStack(spacing: 0) {
-                            DetailRow(label: "קטגוריה", value: category.map { "\($0.emoji) \($0.name)" } ?? "ללא קטגוריה")
-                            Divider()
-                            DetailRow(label: "תאריך", value: transaction.occurredAt.formatted(
-                                Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.wide).year().hour().minute()
-                            ))
-                            if store.isShared, let name = store.memberName(transaction.userID) {
-                                Divider()
-                                DetailRow(label: "הוזן על ידי", value: name)
-                            }
-                            Divider()
-                            DetailRow(label: "מקור", value: CSVExporter.sourceName(transaction.source))
-                            if let note = transaction.note {
-                                Divider()
-                                DetailRow(label: "הערה", value: note)
-                            }
-                        }
-                    }
+            ScrollView {
+                VStack(spacing: Spacing.m) {
+                    header
+                        .padding(.top, Spacing.m)
+                        .padding(.bottom, Spacing.s)
 
                     if transaction.isForeign {
-                        GlassCard {
+                        GlassCard(padding: Spacing.gutter) {
                             VStack(spacing: 0) {
-                                DetailRow(label: "סכום ששולם", value: Money.string(transaction.originalAmount, currency: transaction.originalCurrency, alwaysShowCents: true))
-                                Divider()
-                                DetailRow(label: "שער", value: "1 \(transaction.originalCurrency) = \(NSDecimalNumber(decimal: transaction.exchangeRate.rounded(scale: 4)).stringValue) \(transaction.currency)")
-                                if transaction.feeAmount > 0 {
-                                    Divider()
-                                    DetailRow(label: "עמלת המרה", value: Money.string(transaction.feeAmount, currency: transaction.currency, alwaysShowCents: true))
+                                DetailRow(label: "סכום מקורי") {
+                                    Text(Money.string(transaction.originalAmount, currency: transaction.originalCurrency, alwaysShowCents: true))
                                 }
-                                Divider()
-                                DetailRow(label: "סה\"כ בחיוב", value: Money.string(transaction.amount, currency: transaction.currency, alwaysShowCents: true))
+                                separator
+                                DetailRow(label: "שער המרה") {
+                                    Text("\(Money.string(1, currency: transaction.originalCurrency)) = \(Money.string(transaction.exchangeRate.rounded(scale: 2), currency: transaction.currency, alwaysShowCents: true))")
+                                }
+                                if transaction.feeAmount > 0 {
+                                    separator
+                                    DetailRow(label: "עמלת המרה (\(feePercentText))") {
+                                        Text(Money.string(transaction.feeAmount, currency: transaction.currency, alwaysShowCents: true))
+                                    }
+                                }
+                                separator
+                                DetailRow(label: "סה״כ בשקלים", isStrong: true) {
+                                    Text(Money.string(transaction.amount, currency: transaction.currency, alwaysShowCents: true))
+                                }
                             }
                         }
                         .accessibilityIdentifier("detail.conversion")
                     }
 
-                    if store.canEdit(transaction) {
-                        VStack(spacing: Spacing.s) {
-                            Button("עריכה") { isEditing = true }
-                                .buttonStyle(.glassSecondary)
-                                .accessibilityIdentifier("detail.edit")
-                            Button("מחיקה", role: .destructive) { isConfirmingDelete = true }
-                                .font(.body.weight(.medium))
-                                .foregroundStyle(Theme.expense)
-                                .frame(minHeight: 44)
-                                .accessibilityIdentifier("detail.delete")
+                    GlassCard(padding: Spacing.gutter) {
+                        VStack(spacing: 0) {
+                            DetailRow(label: "קטגוריה") {
+                                HStack(spacing: Spacing.s) {
+                                    if let category {
+                                        EmojiTile(emoji: category.emoji, color: Color(hex: category.color), size: 28)
+                                    }
+                                    Text(category?.name ?? "ללא קטגוריה")
+                                }
+                            }
+                            separator
+                            DetailRow(label: "תאריך") {
+                                Text(transaction.occurredAt.formatted(
+                                    Date.FormatStyle(locale: Locale(identifier: "he_IL")).weekday(.abbreviated).day().month(.abbreviated).hour().minute()
+                                ))
+                            }
+                            separator
+                            DetailRow(label: "מקור") {
+                                Label(TransactionSourceStyle.name(for: transaction.source), systemImage: TransactionSourceStyle.symbol(for: transaction.source))
+                            }
+                            if let member = store.member(transaction.userID) {
+                                separator
+                                DetailRow(label: "תועד על ידי") {
+                                    HStack(spacing: Spacing.s) {
+                                        MemberAvatar(id: member.id, name: member.firstName, size: 24)
+                                        Text(member.id == store.userID ? "\(member.firstName) (אתה)" : member.firstName)
+                                    }
+                                }
+                            }
                         }
+                    }
+
+                    if let note = transaction.note {
+                        GlassCard(padding: Spacing.gutter) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("הערה")
+                                    .font(.footnote)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Text(note)
+                                    .font(.body)
+                                    .foregroundStyle(Theme.textPrimary)
+                            }
+                        }
+                    }
+
+                    if store.canEdit(transaction) {
+                        Button(role: .destructive) {
+                            isConfirmingDelete = true
+                        } label: {
+                            Label(transaction.kind == .income ? "מחיקת ההכנסה" : "מחיקת ההוצאה", systemImage: "trash")
+                                .font(.headline)
+                                .foregroundStyle(Theme.expense)
+                                .frame(maxWidth: .infinity, minHeight: Metrics.buttonHeight)
+                                .background(Theme.expenseTint, in: .rect(cornerRadius: Radius.control))
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, Spacing.s)
+                        .accessibilityIdentifier("detail.delete")
                     } else {
-                        Text("רק מי שהזין את ההוצאה יכול לערוך או למחוק אותה.")
+                        Text("רק מי שתיעד את ההוצאה יכול לערוך או למחוק אותה.")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textTertiary)
                     }
                 }
-                .padding(Spacing.m)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("סגירה") { dismiss() }
-                }
-                    .sharedBackgroundVisibility(.hidden)
-            }
-            .sheet(isPresented: $isEditing) {
-                AddTransactionSheet(store: store, editing: transaction)
-            }
-            .confirmationDialog("למחוק את ההוצאה?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
-                Button("מחיקה", role: .destructive) {
-                    Task {
-                        await store.delete(transaction)
-                        dismiss()
-                    }
-                }
-                Button("ביטול", role: .cancel) {}
+                .padding(.horizontal, Spacing.gutter)
+                .padding(.bottom, Spacing.l)
             }
         }
+        .background { AppBackground() }
+        .sheet(isPresented: $isEditing) {
+            AddTransactionSheet(store: store, editing: transaction)
+        }
+        .confirmationDialog("למחוק את ההוצאה?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
+            Button("מחיקה", role: .destructive) {
+                Task {
+                    await store.delete(transaction)
+                    dismiss()
+                }
+            }
+            Button("ביטול", role: .cancel) {}
+        }
+    }
+
+    private var header: some View {
+        VStack(spacing: Spacing.s) {
+            CategoryBadge(category: category, size: 64)
+            Text(transaction.merchant ?? category?.name ?? "")
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+            AmountText(
+                text: transaction.isForeign
+                    ? Money.string(transaction.originalAmount, currency: transaction.originalCurrency, alwaysShowCents: true)
+                    : Money.listString(transaction),
+                font: Typography.heroAmount,
+                color: transaction.kind == .income ? Theme.income : Theme.textPrimary
+            )
+            .accessibilityIdentifier("detail.amount")
+            if transaction.isForeign {
+                Text("≈ \(Money.string(transaction.amount, currency: transaction.currency, alwaysShowCents: true))\(transaction.feeAmount > 0 ? " כולל עמלה" : "")")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var separator: some View {
+        Rectangle().fill(Theme.separator).frame(height: 1)
+    }
+
+    /// The fee as a percent of the converted amount ("2.5%").
+    private var feePercentText: String {
+        let converted = transaction.amount - transaction.feeAmount
+        guard converted > 0 else { return "" }
+        let percent = (transaction.feeAmount / converted * 100).rounded(scale: 1)
+        return "\(NSDecimalNumber(decimal: percent).stringValue)%"
     }
 }
 
-private struct DetailRow: View {
+private struct DetailRow<Value: View>: View {
     let label: LocalizedStringKey
-    let value: String
+    var isStrong = false
+    @ViewBuilder var value: Value
 
     var body: some View {
-        HStack(alignment: .top) {
+        HStack(alignment: .center) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(isStrong ? Theme.textPrimary : Theme.textSecondary)
             Spacer(minLength: Spacing.m)
-            Text(value)
+            value
+                .foregroundStyle(Theme.textPrimary)
+                .monospacedDigit()
                 .multilineTextAlignment(.trailing)
         }
-        .font(.subheadline)
-        .padding(.vertical, 12)
+        .font(isStrong ? .headline : .subheadline)
+        .frame(minHeight: 50)
     }
 }
