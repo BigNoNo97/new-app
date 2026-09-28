@@ -291,3 +291,84 @@ struct BrandMark: View {
         .accessibilityLabel("SnaPay")
     }
 }
+
+/// An SF Symbol in a tinted rounded square (feature lists, sheet headers, empty states).
+struct FeatureIcon: View {
+    let symbol: String
+    var color: Color = Theme.brand
+    var size: CGFloat = 44
+
+    var body: some View {
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.42, weight: .medium))
+            .foregroundStyle(color)
+            .frame(width: size, height: size)
+            .background(color.opacity(0.16), in: .rect(cornerRadius: size * 0.3))
+    }
+}
+
+/// The logo tile at the top of the log-in screen: the symbol on glass.
+struct BrandTile: View {
+    var size: CGFloat = 64
+
+    var body: some View {
+        Image("BrandSymbol")
+            .resizable()
+            .scaledToFit()
+            .padding(size * 0.14)
+            .frame(width: size, height: size)
+            .glassSurface(radius: size * 0.3)
+            .accessibilityHidden(true)
+    }
+}
+
+/// A sheet's title row: the title centered and a square close button on the trailing side.
+struct SheetHeader: View {
+    let title: LocalizedStringKey
+    var onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+            HStack {
+                Spacer()
+                IconButton(symbol: "xmark", label: "סגירה", action: onClose)
+                    .accessibilityIdentifier("sheet.close")
+            }
+        }
+    }
+}
+
+extension View {
+    /// Replaces the system back button (a glass circle on iOS 26) with the design's 44pt
+    /// rounded-square glass button.
+    func designBackButton() -> some View {
+        modifier(DesignBackButton())
+    }
+
+    /// A bottom sheet in the design's style: radius 32 on the translucent sheet color.
+    func designSheet() -> some View {
+        self
+            .presentationCornerRadius(Radius.sheet)
+            .presentationBackground(Theme.sheet)
+            .presentationDragIndicator(.visible)
+    }
+}
+
+private struct DesignBackButton: ViewModifier {
+    @Environment(\.dismiss) private var dismiss
+
+    func body(content: Content) -> some View {
+        content
+            .navigationBarBackButtonHidden()
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    IconButton(symbol: "chevron.backward", label: "חזרה") { dismiss() }
+                        .accessibilityIdentifier("nav.back")
+                }
+                .sharedBackgroundVisibility(.hidden)
+            }
+    }
+}

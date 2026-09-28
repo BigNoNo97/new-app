@@ -17,31 +17,35 @@ struct ForgotPasswordSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.l) {
+        VStack(spacing: Spacing.l) {
             if didSend {
+                HStack {
+                    Spacer()
+                    IconButton(symbol: "xmark", label: "סגירה") { dismiss() }
+                }
                 VStack(spacing: Spacing.m) {
-                    Image(systemName: "envelope.badge.fill")
-                        .font(.system(size: 44))
-                        .foregroundStyle(Theme.brand)
+                    FeatureIcon(symbol: "envelope", size: 84)
                     Text("שלחנו לך מייל")
-                        .font(.title2.weight(.bold))
-                    Text("פתחו את הקישור במייל כדי לבחור סיסמה חדשה. הקישור יפתח את SnaPay.")
-                        .foregroundStyle(.secondary)
+                        .font(Typography.title1)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("שלחנו קישור לאיפוס אל **\(email)**. לחצו עליו כדי לבחור סיסמה חדשה.")
+                        .font(.body)
+                        .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.top, Spacing.l)
-
-                Button("סגירה") { dismiss() }
-                    .buttonStyle(.glassSecondary)
+                Button("חזרה להתחברות") { dismiss() }
+                    .buttonStyle(.primary)
                     .accessibilityIdentifier("forgot.close")
+                Button("לא הגיע? שלחו שוב", action: send)
+                    .buttonStyle(.text)
+                    .disabled(isSending)
             } else {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("איפוס סיסמה")
-                        .font(.title2.weight(.bold))
-                    Text("נשלח לך קישור לבחירת סיסמה חדשה.")
-                        .foregroundStyle(.secondary)
-                }
+                SheetHeader(title: "איפוס סיסמה") { dismiss() }
+                FeatureIcon(symbol: "lock", size: 64)
+                Text("הזינו את כתובת המייל של החשבון, ונשלח קישור ליצירת סיסמה חדשה.")
+                    .font(.body)
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
                 GlassTextField(title: "אימייל", text: $email, kind: .email, issue: issue, identifier: "forgot.email")
                 if let failure {
                     ErrorBanner(message: failure.message)
@@ -55,9 +59,10 @@ struct ForgotPasswordSheet: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(Spacing.l)
-        .presentationDetents([.medium])
-        .presentationBackground(.regularMaterial)
+        .padding(.horizontal, Spacing.gutter)
+        .padding(.top, Spacing.l)
+        .presentationDetents([.fraction(0.62), .large])
+        .designSheet()
     }
 
     private func send() {
@@ -92,11 +97,12 @@ struct ResetPasswordView: View {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("סיסמה חדשה")
-                        .font(.largeTitle.weight(.bold))
+                        .font(Typography.largeTitle)
+                        .foregroundStyle(Theme.textPrimary)
                     Text("לפחות 8 תווים, עם אותיות באנגלית ומספרים.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                GlassCard(padding: Spacing.l) {
+                GlassCard(padding: Spacing.gutter) {
                     VStack(spacing: Spacing.m) {
                         GlassTextField(title: "סיסמה חדשה", text: $password, kind: .newPassword,
                                        issue: validation.password, identifier: "reset.password")
@@ -114,7 +120,8 @@ struct ResetPasswordView: View {
                 .disabled(isSaving)
                 .accessibilityIdentifier("reset.save")
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.top, Spacing.xl)
         }
         .background { AppBackground() }
     }
@@ -143,16 +150,13 @@ struct CheckEmailView: View {
     var body: some View {
         VStack(spacing: Spacing.l) {
             Spacer()
-            Image(systemName: "envelope.open.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(Theme.brand)
-                .frame(width: 112, height: 112)
-                .glassEffect(.regular, in: .rect(cornerRadius: 32))
+            FeatureIcon(symbol: "envelope.open", size: 96)
             VStack(spacing: Spacing.s) {
                 Text("בדקו את המייל")
-                    .font(.largeTitle.weight(.bold))
-                Text("שלחנו קישור לאישור החשבון אל \(email). אחרי הלחיצה עליו, SnaPay ייפתח ותוכלו להמשיך.")
-                    .foregroundStyle(.secondary)
+                    .font(Typography.largeTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                Text("שלחנו קישור לאישור החשבון אל **\(email)**. אחרי הלחיצה עליו, SnaPay ייפתח ותוכלו להמשיך.")
+                    .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
             }
             Spacer()
@@ -160,6 +164,6 @@ struct CheckEmailView: View {
                 .buttonStyle(.glassSecondary)
                 .accessibilityIdentifier("checkEmail.back")
         }
-        .padding(Spacing.m)
+        .padding(Spacing.gutter)
     }
 }

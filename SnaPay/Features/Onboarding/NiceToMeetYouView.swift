@@ -3,13 +3,13 @@ import SwiftUI
 struct NiceToMeetYouView: View {
     @Environment(AppState.self) private var app
 
-    private let features: [(symbol: String, title: LocalizedStringKey, detail: LocalizedStringKey)] = [
-        ("wave.3.right", "תיעוד בקליק מ-Apple Pay", "משלמים, ומיד קופצת חלונית קטנה לבחירת קטגוריה."),
-        ("arrow.triangle.2.circlepath", "הכנסות וחיובים קבועים", "משכורת, שכירות ומנויים נרשמים לבד בכל חודש."),
-        ("person.2.fill", "חשבון משותף למשפחה", "כל אחד מתעד את שלו, וכולם רואים את התמונה המלאה."),
-        ("airplane", "מטבעות ונסיעות לחו\"ל", "מזינים בדולרים או ביורו, ורואים כמה זה בשקלים כולל עמלה."),
-        ("target", "יעדי חיסכון ותקציבים", "מגדירים יעד, ורואים כמה נשאר עד שמגיעים אליו."),
-        ("sparkles", "סיכום חודשי", "בסוף כל חודש: לאן הלך הכסף, במבט אחד."),
+    private let features: [(symbol: String, color: UInt32, title: LocalizedStringKey, detail: LocalizedStringKey)] = [
+        ("wave.3.right", 0x2FB36D, "תיעוד בקליק מ-Apple Pay", "משלמים, בוחרים קטגוריה, וזהו."),
+        ("arrow.triangle.2.circlepath", 0x3B82F6, "הכנסות וחיובים קבועים", "משכורת, שכירות ומנויים נרשמים לבד."),
+        ("person.2", 0xE056B0, "חשבון משותף למשפחה", "כל אחד מתעד את שלו, כולם רואים הכול."),
+        ("globe", 0x0EA5E9, "מטבעות ונסיעות לחו\"ל", "המרה אוטומטית, כולל עמלת הכרטיס."),
+        ("target", 0x84B814, "יעדי חיסכון ותקציבים", "יודעים כמה נשאר ומתי מגיעים ליעד."),
+        ("chart.bar", 0xF59E0B, "סיכום חודשי", "החודש שלך בכמה כרטיסים קלילים."),
     ]
 
     var body: some View {
@@ -17,41 +17,41 @@ struct NiceToMeetYouView: View {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     Text("\(app.profile?.firstName ?? ""), נעים להכיר!")
-                        .font(.largeTitle.weight(.bold))
+                        .font(Typography.largeTitle)
+                        .foregroundStyle(Theme.textPrimary)
                         .accessibilityIdentifier("nice.title")
-                    Text("\u{200F}SnaPay עוזר לך לדעת לאן הולך הכסף, בלי להקליד כל הוצאה מחדש. הנה מה שמחכה לך:")
+                    Text("\u{200F}SnaPay הופך כל תשלום לרישומה מסודרת, מחלק לקטגוריות ומראה לך לאן הולך הכסף, לבד או עם המשפחה.")
                         .font(.body)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
                 .padding(.top, Spacing.xl)
 
-                VStack(spacing: Spacing.m) {
+                VStack(spacing: Spacing.cardGap) {
                     ForEach(features, id: \.symbol) { feature in
                         GlassCard {
-                            HStack(alignment: .top, spacing: Spacing.m) {
-                                Image(systemName: feature.symbol)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(Theme.brand)
-                                    .frame(width: 40, height: 40)
-                                    .background(Theme.brand.opacity(0.14), in: .rect(cornerRadius: 12))
+                            HStack(spacing: Spacing.m) {
+                                FeatureIcon(symbol: feature.symbol, color: Color(uiColor: UIColor(hex: feature.color)), size: 44)
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(feature.title)
                                         .font(.headline)
+                                        .foregroundStyle(Theme.textPrimary)
                                     Text(feature.detail)
                                         .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(Theme.textSecondary)
                                 }
                             }
                         }
                     }
                 }
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.m)
         }
         .safeAreaInset(edge: .bottom) {
             Button("נתחיל!") { app.continueFromNiceToMeetYou() }
                 .buttonStyle(.primary)
-                .padding(Spacing.m)
+                .padding(.horizontal, Spacing.gutter)
+                .padding(.bottom, Spacing.s)
                 .accessibilityIdentifier("nice.continue")
         }
     }

@@ -34,29 +34,30 @@ struct WelcomeView: View {
     var body: some View {
         VStack(spacing: Spacing.l) {
             WelcomeHero()
-                .frame(maxHeight: 320)
-                .padding(.top, Spacing.l)
+                .frame(height: 330)
+                .padding(.top, Spacing.m)
 
             VStack(alignment: .leading, spacing: Spacing.s) {
-                Text("כל הוצאה, בלחיצה אחת.")
-                    .font(.largeTitle.weight(.bold))
+                Text("כל הוצאה,\nבלחיצה אחת.")
+                    .font(.system(size: 36, weight: .bold))
+                    .foregroundStyle(Theme.textPrimary)
                 // \u{200F} (RLM) keeps the paragraph right-to-left although it starts with a Latin word.
                 Text("\u{200F}SnaPay קולט את התשלום מהאייפון, ואתה רק בוחר קטגוריה.")
                     .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: Spacing.m) {
+            VStack(alignment: .leading, spacing: Spacing.sm) {
                 FeatureLine(symbol: "wave.3.right", text: "תיעוד אוטומטי מ-Apple Pay")
-                FeatureLine(symbol: "person.2.fill", text: "ניהול משותף לזוג ולמשפחה")
-                FeatureLine(symbol: "target", text: "יעדים ותקציבים שעוזרים לחסוך")
+                FeatureLine(symbol: "person.2", text: "ניהול משותף למשפחה")
+                FeatureLine(symbol: "target", text: "יעדים ותקציבים")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
             Spacer(minLength: 0)
 
-            VStack(spacing: Spacing.m) {
+            VStack(spacing: Spacing.sm) {
                 Button("בוא נתחיל", action: onStart)
                     .buttonStyle(.primary)
                     .accessibilityIdentifier("welcome.start")
@@ -65,7 +66,8 @@ struct WelcomeView: View {
                     .accessibilityIdentifier("welcome.logIn")
             }
         }
-        .padding(Spacing.m)
+        .padding(.horizontal, Spacing.gutter)
+        .padding(.bottom, Spacing.s)
         .background { AppBackground() }
         .toolbar(.hidden, for: .navigationBar)
     }
@@ -77,78 +79,95 @@ private struct FeatureLine: View {
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            Image(systemName: symbol)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(Theme.brand)
-                .frame(width: 36, height: 36)
-                .background(Theme.brand.opacity(0.14), in: .rect(cornerRadius: 10))
+            FeatureIcon(symbol: symbol, size: 36)
             Text(text)
-                .font(.body.weight(.medium))
+                .font(.body)
+                .foregroundStyle(Theme.textPrimary)
         }
     }
 }
 
-/// Floating glass cards that tell the story at a glance: a payment, its category, the month.
+/// Floating glass cards that tell the story at a glance: a payment with category tiles, the
+/// saved chip, the month's bars, and the logo.
 private struct WelcomeHero: View {
     @State private var isFloating = false
 
+    private let tiles: [(String, UInt32)] = [("🛒", 0x2FB36D), ("🍔", 0xFF8A3D), ("🛍️", 0xE056B0), ("🏠", 0x8B5CF6)]
+
     var body: some View {
         ZStack {
-            // Month card (back)
-            GlassCard {
-                VStack(alignment: .leading, spacing: Spacing.s) {
+            // Month card (back, bottom left)
+            GlassCard(padding: Spacing.m) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
                     Text("ספטמבר")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
-                    Text("₪3,453")
-                        .font(.title2.weight(.semibold))
-                    HStack(alignment: .bottom, spacing: 6) {
-                        ForEach(Array([0.35, 0.55, 0.4, 0.8, 0.6, 1.0].enumerated()), id: \.offset) { index, height in
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(index == 5 ? Theme.brand : Theme.brand.opacity(0.25))
-                                .frame(width: 18, height: 48 * height)
+                        .foregroundStyle(Theme.textSecondary)
+                    HStack(alignment: .bottom, spacing: 8) {
+                        ForEach(Array([1.0, 0.6, 0.8, 1.0, 0.75, 0.45].enumerated()), id: \.offset) { index, height in
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(index == 5 ? Theme.brand : Theme.fillStrong)
+                                .frame(width: 18, height: 64 * height)
                         }
                     }
-                    .frame(height: 48, alignment: .bottom)
+                    .frame(height: 64, alignment: .bottom)
                 }
             }
-            .frame(width: 210)
-            .rotationEffect(.degrees(-6))
-            .offset(x: -70, y: isFloating ? -54 : -46)
+            .frame(width: 170)
+            .rotationEffect(.degrees(-4))
+            .offset(x: -95, y: isFloating ? 88 : 96)
 
-            // Payment card (front)
-            GlassCard {
-                HStack(spacing: Spacing.m) {
-                    Text("☕")
-                        .font(.title)
-                        .frame(width: 48, height: 48)
-                        .background(Theme.expense.opacity(0.16), in: .rect(cornerRadius: 14))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("ארומה")
-                            .font(.headline)
-                        Text("עכשיו · Apple Pay")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
+            // Payment card (front, top right)
+            GlassCard(padding: Spacing.m) {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    HStack(spacing: Spacing.sm) {
+                        EmojiTile(emoji: "🛒", color: Color(hex: "#2FB36D"), size: 40)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("שופרסל דיל")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                            Label("Apple Pay · עכשיו", systemImage: "wave.3.right")
+                                .font(.caption)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
                     }
-                    Spacer()
-                    Text("₪18.50")
-                        .font(.headline)
+                    AmountText(text: Money.string(Decimal(string: "212.40")!, currency: "ILS", alwaysShowCents: true),
+                               font: .system(size: 34, weight: .bold))
+                    HStack(spacing: Spacing.s) {
+                        ForEach(Array(tiles.enumerated()), id: \.offset) { index, tile in
+                            EmojiTile(emoji: tile.0, color: Color(uiColor: UIColor(hex: tile.1)), size: 34)
+                                .overlay {
+                                    if index == 0 {
+                                        RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.brand, lineWidth: 2).padding(-3)
+                                    }
+                                }
+                        }
+                    }
                 }
             }
-            .frame(width: 290)
-            .offset(x: 20, y: isFloating ? 38 : 46)
+            .frame(width: 245)
+            .rotationEffect(.degrees(2))
+            .offset(x: 45, y: isFloating ? -62 : -54)
 
-            // Category chip
-            HStack(spacing: 6) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(Theme.brand)
-                Text("נשמר בקפה")
-                    .font(.subheadline.weight(.semibold))
+            // Saved chip
+            HStack(spacing: Spacing.s) {
+                EmojiTile(emoji: "🍔", color: Color(hex: "#FF8A3D"), size: 34)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("אוכל ומסעדות")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Theme.textPrimary)
+                    Label("נשמר", systemImage: "checkmark")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(Theme.brandInk)
+                }
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 10)
-            .glassEffect(.regular, in: .rect(cornerRadius: 14))
-            .offset(x: 90, y: isFloating ? 118 : 124)
+            .glassSurface(radius: 18)
+            .offset(x: 40, y: isFloating ? 92 : 100)
+
+            // Logo tile
+            BrandTile(size: 52)
+                .offset(x: -100, y: isFloating ? -118 : -112)
         }
         .frame(maxWidth: .infinity)
         .accessibilityHidden(true)

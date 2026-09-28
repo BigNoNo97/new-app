@@ -22,12 +22,14 @@ struct SignUpView: View {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
                     Text("יצירת חשבון")
-                        .font(.largeTitle.weight(.bold))
-                    Text("כמה פרטים, ואפשר להתחיל.")
-                        .foregroundStyle(.secondary)
+                        .font(Typography.largeTitle)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("דקה אחת, ואפשר להתחיל לתעד.")
+                        .font(.body)
+                        .foregroundStyle(Theme.textSecondary)
                 }
 
-                GlassCard(padding: Spacing.l) {
+                GlassCard(padding: Spacing.gutter) {
                     VStack(spacing: Spacing.m) {
                         GlassTextField(title: "שם מלא", text: $fullName, kind: .name,
                                        issue: validation.fullName, identifier: "signup.fullName")
@@ -38,9 +40,10 @@ struct SignUpView: View {
                         GlassTextField(title: "אימות סיסמה", text: $confirmation, kind: .newPassword,
                                        issue: validation.passwordConfirmation, identifier: "signup.confirmation")
                         CurrencyPickerRow(title: "המטבע העיקרי שלי", code: $currency)
-                        TermsConsentRow(isOn: $acceptedTerms, issue: validation.terms)
                     }
                 }
+
+                TermsConsentRow(isOn: $acceptedTerms, issue: validation.terms)
 
                 if let failure {
                     ErrorBanner(message: failure.message)
@@ -55,20 +58,22 @@ struct SignUpView: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text("כבר יש לך חשבון?")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Button("להתחברות", action: onSwitchToLogIn)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Theme.brand)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Theme.brandInk)
                         .accessibilityIdentifier("signup.toLogIn")
                 }
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.l)
         }
         .scrollDismissesKeyboard(.interactively)
         .background { AppBackground() }
         .navigationBarTitleDisplayMode(.inline)
+        .designBackButton()
         .onChange(of: [fullName, email, password, confirmation]) { revalidateIfNeeded() }
         .onChange(of: acceptedTerms) { revalidateIfNeeded() }
     }
