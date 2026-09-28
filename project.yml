@@ -47,6 +47,8 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.bignono97.snapay
+        # Partner notifications. Exporting for TestFlight / App Store switches it to production.
+        aps-environment: development
     info:
       path: SnaPay/Info.plist
       properties:

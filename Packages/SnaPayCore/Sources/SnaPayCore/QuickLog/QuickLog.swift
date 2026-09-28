@@ -158,6 +158,8 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
     public var categories: [CategoryItem]
     public var rates: ExchangeRates?
     public var suggester: CategorySuggester
+    /// Remind about a payment still waiting for a category (notification setting).
+    public var remindsPendingCapture: Bool
 
     public init(
         userID: UUID,
@@ -167,7 +169,8 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
         isEnabled: Bool,
         categories: [CategoryItem],
         rates: ExchangeRates?,
-        suggester: CategorySuggester
+        suggester: CategorySuggester,
+        remindsPendingCapture: Bool = true
     ) {
         self.userID = userID
         self.householdID = householdID
@@ -177,6 +180,26 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
         self.categories = categories.filter { $0.kind == .expense && !$0.isArchived }.sorted { $0.sortOrder < $1.sortOrder }
         self.rates = rates
         self.suggester = suggester
+        self.remindsPendingCapture = remindsPendingCapture
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case userID, householdID, mainCurrency, cardFeePercent, isEnabled, categories, rates, suggester
+        case remindsPendingCapture
+    }
+
+    /// Files written by an older version lack newer keys; those get their defaults.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        userID = try c.decode(UUID.self, forKey: .userID)
+        householdID = try c.decode(UUID.self, forKey: .householdID)
+        mainCurrency = try c.decode(String.self, forKey: .mainCurrency)
+        cardFeePercent = try c.decode(Decimal.self, forKey: .cardFeePercent)
+        isEnabled = try c.decode(Bool.self, forKey: .isEnabled)
+        categories = try c.decode([CategoryItem].self, forKey: .categories)
+        rates = try c.decodeIfPresent(ExchangeRates.self, forKey: .rates)
+        suggester = try c.decode(CategorySuggester.self, forKey: .suggester)
+        remindsPendingCapture = try c.decodeIfPresent(Bool.self, forKey: .remindsPendingCapture) ?? true
     }
 
     /// Categories to offer for `payment`, most likely first. A trip running on the payment's

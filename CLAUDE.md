@@ -35,6 +35,9 @@
 - `Packages/SnaPayCore/` — לוגיקה עסקית בלי ממשק: המרת מטבע, חודש פיננסי, חיובים מחזוריים, הצעת קטגוריה וקריאת קבצי עו"ש. כל לוגיקה שאפשר לבדוק בלי ממשק נכנסת לכאן, עם טסטים.
 - `SnaPay/App/AppState.swift` — מצב האפליקציה: איזה מסך מוצג וזרימות החשבון. השירותים (`SnaPay/Core/Services/`) מוגדרים כפרוטוקולים, עם מימוש Supabase ומימוש בזיכרון לטסטי ממשק (`-uiTesting`).
 - `SnaPay/Features/QuickLog/` — תיעוד בקליק: פעולות קיצורים (`LogPaymentIntent`, חלונית `SnippetIntent`), מסך הדרכה וכרטיסי מסך הבית. הפעולה שומרת תשלומים לתיבת קליטה משותפת ב-App Group (`SnaPay/Core/QuickLog/QuickLogStorage.swift`), והמחסן הופך אותם לתנועות.
+- `SnaPay/Features/Settings/` — מסך ההגדרות והחשבון המשותף. משתמש שייך למשק בית אחד: הצטרפות, יציאה והסרה רצות בפונקציות SQL (`supabase/migrations/20261002000000_family.sql`), וההוצאות של המשתמש עוברות איתו.
+- `SnaPay/Core/Services/PushNotifications.swift` — רישום להתראות. הפונקציה `notify-partners` שולחת לשותפים התראה על תנועה חדשה.
+- טסטי ממשק עם שותפה מדומה: `invited@example.com` מקבל הזמנה, ו-`shared@example.com` כבר בחשבון משותף.
 - `SnaPay/Core/Store/TransactionStore.swift` — נתוני משק הבית באפליקציה: עותק מקומי בקובץ ב-App Group, תור שינויים (outbox) לעבודה בלי רשת, ויצירת חיובים קבועים בכל פתיחה.
 - `SnaPayUITests/` — טסטי ממשק. בכל ריצה ב-CI נשמרים צילומי מסך בבהיר ובכהה כקובץ `screenshots` של הבנייה.
 - `supabase/` — צד השרת: מיגרציות (`migrations/`), טסטי pgTAP להרשאות (`tests/`), פונקציות שרת (`functions/`) ותבניות מייל בעברית (`templates/`).

@@ -56,6 +56,10 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      # Partner notifications (notify-partners). The .p8 key file contents go in APNS_KEY.
+      APNS_KEY: ${{ secrets.APNS_KEY }}
+      APNS_KEY_ID: ${{ secrets.APNS_KEY_ID }}
+      APNS_TEAM_ID: ${{ secrets.APNS_TEAM_ID }}
     steps:
       - name: Skip until the Supabase project is configured
         if: env.SUPABASE_ACCESS_TOKEN == '' || env.PROJECT_REF == ''
@@ -76,3 +80,9 @@ jobs:
           supabase db push --password "$SUPABASE_DB_PASSWORD"
           supabase config push --project-ref "$PROJECT_REF" --yes
           supabase functions deploy --project-ref "$PROJECT_REF"
+
+      - name: Push notification secrets for the functions
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != '' && env.APNS_KEY != ''
+        run: |
+          supabase secrets set --project-ref "$PROJECT_REF" \
+            "APNS_KEY=$APNS_KEY" "APNS_KEY_ID=$APNS_KEY_ID" "APNS_TEAM_ID=$APNS_TEAM_ID"

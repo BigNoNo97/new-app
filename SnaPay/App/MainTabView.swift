@@ -28,6 +28,9 @@ struct MainTabView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var selection: AppTab = .home
     @State private var isAddSheetPresented = false
+    @State private var shownInvite: PendingInvite?
+    /// Invites the user put off with "לא עכשיו" (asked again on the next launch).
+    @State private var postponedInvites: Set<UUID> = []
 
     var body: some View {
         if let store = app.store {
@@ -62,7 +65,28 @@ struct MainTabView: View {
         }
         // Payments logged from the quick-log card while the app was in the background.
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { Task { await store.syncQuickLog() } }
+            if phase == .active {
+                Task {
+                    await store.syncQuickLog()
+                    await app.loadPendingInvites()
+                }
+            }
+        }
+        // A partner's new expense (push) while the app is open, or a tapped notification.
+        .onReceive(NotificationCenter.default.publisher(for: .remoteActivity)) { _ in
+            selection = .home
+            Task { await store.refresh() }
+        }
+        .sheet(item: $shownInvite, onDismiss: {
+            // Still pending after the sheet closed: "לא עכשיו".
+            postponedInvites.formUnion(app.pendingInvites.map(\.id))
+        }) { invite in
+            InviteReceivedSheet(invite: invite)
+        }
+        .onChange(of: app.pendingInvites, initial: true) { _, invites in
+            if shownInvite == nil, let next = invites.first(where: { !postponedInvites.contains($0.id) }) {
+                shownInvite = next
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickLogDidChange)) { _ in
             store.reloadQuickLogInbox()

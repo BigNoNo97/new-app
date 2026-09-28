@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 import SnaPayCore
 
 /// What the quick-log card shows, computed on the main actor and handed to the snippet view.
@@ -58,6 +59,9 @@ enum QuickLogService {
         )
         let kept = QuickLogStorage.updateInbox { $0.add(payment) }
         NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
+        if context.remindsPendingCapture && kept.id == payment.id {
+            PendingCaptureReminder.schedule(for: kept)
+        }
         return kept.id.uuidString
     }
 
@@ -69,6 +73,7 @@ enum QuickLogService {
         let previous = payment.categoryID
         QuickLogStorage.updateInbox { $0.categorize(paymentID, as: categoryID) }
         payment.categoryID = categoryID
+        PendingCaptureReminder.cancel(paymentIDs: [paymentID])
         if previous == nil {
             context.suggester.record(merchant: payment.merchant, categoryID: categoryID.uuidString)
             QuickLogStorage.saveContext(context)
@@ -78,10 +83,16 @@ enum QuickLogService {
         guard let repository else { return }
         if let row = try? context.makeRow(for: payment) {
             // Choosing again after an upload (to fix a wrong tap) updates the same row.
-            if previous == nil {
-                try? await repository.insertIgnoringDuplicates([row])
-            } else {
-                try? await repository.saveTransactions([row])
+            do {
+                if previous == nil {
+                    try await repository.insertIgnoringDuplicates([row])
+                    // The server skips this when nobody shares the household.
+                    try? await repository.notifyPartners(transactionID: row.id)
+                } else {
+                    try await repository.saveTransactions([row])
+                }
+            } catch {
+                // Offline or signed out in the background: the app uploads it on its next sync.
             }
         }
         try? await repository.recordMerchantCategory(householdID: context.householdID, merchant: payment.merchant, categoryID: categoryID)
@@ -139,5 +150,31 @@ enum QuickLogService {
 
     private static func choice(_ category: CategoryItem) -> QuickLogCardModel.Choice {
         .init(id: category.id, emoji: category.emoji, name: category.name, color: category.color)
+    }
+}
+
+/// "תשלום מחכה לקטגוריה": a local notification 30 minutes after a capture, cancelled once the
+/// payment gets a category (or is discarded).
+enum PendingCaptureReminder {
+    static let delay: TimeInterval = 30 * 60
+
+    static func identifier(for id: UUID) -> String { "pending-capture-\(id.uuidString)" }
+
+    static func schedule(for payment: CapturedPayment) {
+        let content = UNMutableNotificationContent()
+        content.title = "תשלום מחכה לקטגוריה"
+        let merchant = payment.merchant.isEmpty ? "תשלום ב-Apple Pay" : payment.merchant
+        content.body = "\(merchant) · \(Money.string(payment.amount, currency: payment.currency, alwaysShowCents: true)). לחיצה פותחת את SnaPay."
+        content.sound = .default
+        content.threadIdentifier = "pending-capture"
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delay, repeats: false)
+        UNUserNotificationCenter.current().add(
+            UNNotificationRequest(identifier: identifier(for: payment.id), content: content, trigger: trigger)
+        )
+    }
+
+    static func cancel(paymentIDs: [UUID]) {
+        guard !paymentIDs.isEmpty else { return }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: paymentIDs.map(identifier(for:)))
     }
 }

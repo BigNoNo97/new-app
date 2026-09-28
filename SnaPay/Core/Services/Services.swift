@@ -23,6 +23,16 @@ enum AuthFailure: Error, Equatable {
     case unknown
 }
 
+/// A failure in the shared-account flows the UI can explain in Hebrew.
+enum HouseholdFailure: Error, Equatable {
+    case inviteAlreadyPending
+    case inviteNotFound
+    case alreadyMember
+    case notOwner
+    case network
+    case unknown
+}
+
 protocol AuthServicing: AnyObject {
     /// The signed-in user, restoring (and refreshing) a saved session if there is one.
     func restoreSession() async -> UUID?
@@ -33,12 +43,29 @@ protocol AuthServicing: AnyObject {
     func handleRedirect(_ url: URL) async throws -> (AuthRedirect, UUID)
     func updatePassword(_ password: String) async throws
     func signOut() async
+    /// The signed-in user's email, for the settings screen.
+    var currentEmail: String? { get }
 }
 
 protocol AccountRepository: AnyObject {
     func fetchProfile(userID: UUID) async throws -> Profile
     /// Saves the onboarding categories (idempotent) and marks onboarding as done.
     func completeOnboarding(userID: UUID, householdID: UUID, categories: [CategoryDraft]) async throws
+
+    // Shared households
+    /// Invites addressed to my email that I haven't answered.
+    func fetchPendingInvites() async throws -> [PendingInvite]
+    /// Joins the invite's household (my own entries move with me). Returns its id.
+    func acceptInvite(_ id: UUID) async throws -> UUID
+    func declineInvite(_ id: UUID) async throws
+    /// Leaves the shared household for a new personal one (my entries move with me).
+    func leaveHousehold() async throws -> UUID
+
+    // Push notifications and account
+    func registerDeviceToken(_ token: String, environment: String) async throws
+    func unregisterDeviceToken(_ token: String) async throws
+    /// Permanently deletes the account and everything the user entered.
+    func deleteAccount() async throws
 }
 
 /// Household data: categories, members, transactions, recurring rules, exchange rates and the
@@ -63,5 +90,17 @@ protocol DataRepository: AnyObject {
     func fetchMerchantMap(householdID: UUID) async throws -> [MerchantCategoryRow]
     /// Counts one more choice of `categoryID` for `merchant`.
     func recordMerchantCategory(householdID: UUID, merchant: String, categoryID: UUID) async throws
-    func updateQuickLogEnabled(userID: UUID, enabled: Bool) async throws
+    func updateProfile(userID: UUID, changes: ProfileChanges) async throws
+
+    // Shared households
+    func fetchHousehold(id: UUID) async throws -> HouseholdRow
+    func setHouseholdShared(id: UUID, isShared: Bool) async throws
+    /// Pending invites my household sent.
+    func fetchSentInvites(householdID: UUID) async throws -> [HouseholdInviteRow]
+    func sendInvite(householdID: UUID, email: String) async throws
+    func revokeInvite(_ id: UUID) async throws
+    /// Owner only: the member moves to a personal household with their entries.
+    func removeMember(_ userID: UUID) async throws
+    /// Pushes a notification about a new transaction to the other members (once per row).
+    func notifyPartners(transactionID: UUID) async throws
 }

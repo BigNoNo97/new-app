@@ -92,6 +92,7 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["tab.home"].waitForExistence(timeout: 10))
 
         tap(app.buttons["tab.profile"], in: app)
+        tap(app.buttons["profile.settings"], in: app)
         tap(app.buttons["profile.signOut"], in: app)
         XCTAssertTrue(app.buttons["welcome.start"].waitForExistence(timeout: 10), "signing out returns to welcome")
     }

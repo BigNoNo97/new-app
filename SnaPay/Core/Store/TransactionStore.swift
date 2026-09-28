@@ -51,6 +51,9 @@ final class TransactionStore {
     private(set) var quickLogFirstCaptureAt: Date?
     /// What the quick-log intent works with; rebuilt on every save.
     private(set) var quickLogContext: QuickLogContext?
+    /// Loaded by the shared-account settings.
+    private(set) var household: HouseholdRow?
+    private(set) var sentInvites: [HouseholdInviteRow] = []
 
     let userID: UUID
     let householdID: UUID
@@ -319,6 +322,7 @@ final class TransactionStore {
     /// Files a captured payment from the home screen's "waiting for a category" card.
     func categorizeCapture(_ payment: CapturedPayment, as categoryID: UUID) async {
         QuickLogStorage.updateInbox { $0.categorize(payment.id, as: categoryID) }
+        PendingCaptureReminder.cancel(paymentIDs: [payment.id])
         await syncQuickLog()
         try? await repository.recordMerchantCategory(householdID: householdID, merchant: payment.merchant, categoryID: categoryID)
     }
@@ -326,6 +330,7 @@ final class TransactionStore {
     /// Drops a captured payment the user doesn't want logged.
     func discardCapture(_ payment: CapturedPayment) {
         QuickLogStorage.updateInbox { $0.remove([payment.id]) }
+        PendingCaptureReminder.cancel(paymentIDs: [payment.id])
         pendingCaptures.removeAll { $0.id == payment.id }
     }
 
@@ -334,14 +339,7 @@ final class TransactionStore {
     }
 
     func setQuickLogEnabled(_ enabled: Bool) async {
-        profile.quickLogEnabled = enabled
-        DevicePreferences.cachedProfile = profile
-        saveSnapshot()
-        do {
-            try await repository.updateQuickLogEnabled(userID: userID, enabled: enabled)
-        } catch {
-            syncProblem = Self.isOffline(error) ? .offline : .rejected
-        }
+        await updateProfile(ProfileChanges(quickLogEnabled: enabled))
     }
 
     /// Turns categorized payments into transactions (queued for upload) and refreshes the list
@@ -361,6 +359,7 @@ final class TransactionStore {
         }
         if !drained.isEmpty {
             QuickLogStorage.updateInbox { $0.remove(drained) }
+            PendingCaptureReminder.cancel(paymentIDs: Array(drained))
         }
         let current = QuickLogStorage.loadInbox()
         pendingCaptures = current.uncategorized
@@ -377,8 +376,80 @@ final class TransactionStore {
             isEnabled: profile.quickLogEnabled,
             categories: categories,
             rates: rates,
-            suggester: CategorySuggester.build(transactions: transactions, merchantMap: merchantMap)
+            suggester: CategorySuggester.build(transactions: transactions, merchantMap: merchantMap),
+            remindsPendingCapture: profile.notifyPendingCapture
         )
+    }
+
+    // MARK: Profile and sharing
+
+    /// Applies a settings change locally right away, then saves it on the server.
+    func updateProfile(_ changes: ProfileChanges) async {
+        guard !changes.isEmpty, changes.isValid else { return }
+        profile.apply(changes)
+        DevicePreferences.cachedProfile = profile
+        saveSnapshot()
+        do {
+            try await repository.updateProfile(userID: userID, changes: changes)
+        } catch {
+            syncProblem = Self.isOffline(error) ? .offline : .rejected
+        }
+    }
+
+    var isOwner: Bool {
+        members.first { $0.id == userID }?.isOwner ?? true
+    }
+
+    /// Household, members and pending invites, for the shared-account settings.
+    func loadSharing() async {
+        do {
+            household = try await repository.fetchHousehold(id: householdID)
+            members = try await repository.fetchMembers(householdID: householdID)
+            sentInvites = try await repository.fetchSentInvites(householdID: householdID)
+            saveSnapshot()
+        } catch {
+            syncProblem = Self.isOffline(error) ? .offline : .rejected
+        }
+    }
+
+    func setShared(_ isShared: Bool) async throws {
+        household?.isShared = isShared
+        do {
+            try await repository.setHouseholdShared(id: householdID, isShared: isShared)
+        } catch {
+            household?.isShared = !isShared
+            throw Self.householdFailure(error)
+        }
+    }
+
+    func invite(email: String) async throws {
+        do {
+            try await repository.sendInvite(householdID: householdID, email: email)
+            sentInvites = try await repository.fetchSentInvites(householdID: householdID)
+            if household?.isShared == false { try? await setShared(true) }
+        } catch {
+            throw Self.householdFailure(error)
+        }
+    }
+
+    func revokeInvite(_ invite: HouseholdInviteRow) async {
+        sentInvites.removeAll { $0.id == invite.id }
+        try? await repository.revokeInvite(invite.id)
+    }
+
+    func removeMember(_ member: HouseholdMember) async throws {
+        do {
+            try await repository.removeMember(member.id)
+        } catch {
+            throw Self.householdFailure(error)
+        }
+        await loadSharing()
+        await refresh()
+    }
+
+    private static func householdFailure(_ error: Error) -> HouseholdFailure {
+        if let failure = error as? HouseholdFailure { return failure }
+        return isOffline(error) ? .network : .unknown
     }
 
     // MARK: Sync
@@ -396,6 +467,7 @@ final class TransactionStore {
                 case .insertCaptured(let row): try await repository.insertIgnoringDuplicates([row])
                 }
                 outbox.removeFirst()
+                notifyPartnersIfNew(change)
             } catch let error where Self.isOffline(error) {
                 syncProblem = .offline
                 break sync
@@ -406,6 +478,20 @@ final class TransactionStore {
             }
         }
         saveSnapshot()
+    }
+
+    /// Lets the partners know about a transaction logged in the last day. The server sends each
+    /// transaction's notification once, so edits and retries don't notify again.
+    private func notifyPartnersIfNew(_ change: PendingChange) {
+        guard isShared else { return }
+        let row: TransactionRow
+        switch change {
+        case .save(let saved), .insertCaptured(let saved): row = saved
+        case .delete: return
+        }
+        guard row.userID == userID, (row.createdAt ?? .now) > Date.now.addingTimeInterval(-24 * 60 * 60) else { return }
+        let repository = repository
+        Task { try? await repository.notifyPartners(transactionID: row.id) }
     }
 
     private func upsertLocally(_ row: TransactionRow) {
@@ -467,9 +553,10 @@ final class TransactionStore {
         }
     }
 
-    /// Removes this user's saved data from the device (sign-out).
-    func eraseLocalData() {
+    /// Removes this user's saved data from the device (sign-out, or a household change that
+    /// keeps the quick-log inbox).
+    func eraseLocalData(keepingQuickLog: Bool = false) {
         try? FileManager.default.removeItem(at: snapshotURL)
-        QuickLogStorage.erase()
+        if !keepingQuickLog { QuickLogStorage.erase() }
     }
 }

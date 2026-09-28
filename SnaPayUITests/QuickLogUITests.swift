@@ -50,9 +50,11 @@ final class QuickLogUITests: XCTestCase {
         app.buttons["סגירה"].firstMatch.tap()
 
         tap(app.buttons["tab.profile"], in: app)
+        tap(app.buttons["profile.settings"], in: app)
         let toggle = app.descendants(matching: .any)["profile.quickLog"].firstMatch
         tap(toggle, in: app)
-        screenshot(app, "profile-quicklog-off-light")
+        screenshot(app, "settings-quicklog-off-light")
+        tap(app.buttons["settings.close"], in: app)
 
         tap(app.buttons["tab.home"], in: app)
         XCTAssertTrue(waitForDisappearance(app.descendants(matching: .any)["quicklog.setupCard"].firstMatch), "no invitation while quick-log is off")
@@ -66,6 +68,7 @@ final class QuickLogUITests: XCTestCase {
         screenshot(app, "home-pending-dark")
 
         tap(app.buttons["tab.profile"], in: app)
+        tap(app.buttons["profile.settings"], in: app)
         tap(app.buttons["profile.quickLogSetup"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["quicklog.status"].firstMatch.waitForExistence(timeout: 5), "shows that the first payment arrived")
         screenshot(app, "quicklog-setup-works-dark")

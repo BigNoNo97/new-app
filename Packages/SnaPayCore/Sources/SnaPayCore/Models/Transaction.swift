@@ -206,10 +206,13 @@ public struct CategoryItem: Codable, Identifiable, Hashable, Sendable {
 public struct HouseholdMember: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var fullName: String
+    /// From `household_members.role`; not part of the profile row it's decoded from.
+    public var isOwner = false
 
-    public init(id: UUID, fullName: String) {
+    public init(id: UUID, fullName: String, isOwner: Bool = false) {
         self.id = id
         self.fullName = fullName
+        self.isOwner = isOwner
     }
 
     public var firstName: String { PersonName.firstName(from: fullName) }

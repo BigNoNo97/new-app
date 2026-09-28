@@ -9,60 +9,80 @@ struct GoalsView: View {
     }
 }
 
+/// Profile (design: `profile`). The reports, charts and budgets arrive with stage 8; for now:
+/// who I am, the shared account at a glance, and the way into settings.
 struct ProfileView: View {
     @Environment(AppState.self) private var app
     @Environment(TransactionStore.self) private var store
-    @State private var isShowingTrips = false
-    @State private var isShowingQuickLogSetup = false
+    @State private var isShowingSettings = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            PlaceholderScreen(title: "פרופיל", message: "כאן יופיעו הפרטים שלך, הדוחות וההגדרות.")
-            // Temporary entries until the profile and settings screens.
-            VStack(spacing: Spacing.s) {
-                Toggle(isOn: Binding(
-                    get: { store.profile.quickLogEnabled },
-                    set: { enabled in Task { await store.setQuickLogEnabled(enabled) } }
-                )) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("תיעוד בקליק")
-                            .font(.body.weight(.medium))
-                        Text("חלונית לבחירת קטגוריה אחרי תשלום ב-Apple Pay")
-                            .font(.footnote)
-                            .foregroundStyle(Theme.textSecondary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.m) {
+                Text("פרופיל")
+                    .font(Typography.largeTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                    .padding(.top, Spacing.s)
+
+                GlassCard(padding: Spacing.gutter) {
+                    HStack(spacing: Spacing.sm) {
+                        MemberAvatar(id: store.userID, name: store.profile.firstName, size: 56)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(store.profile.fullName)
+                                .font(.title3.weight(.bold))
+                                .foregroundStyle(Theme.textPrimary)
+                            Text(store.isShared ? "חשבון משותף · \(store.members.count) שותפים" : "חשבון אישי")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                        Spacer()
+                        IconButton(symbol: "gearshape", label: "הגדרות") { isShowingSettings = true }
+                            .accessibilityIdentifier("profile.settings")
                     }
                 }
-                .toggleStyle(.rounded)
-                .padding(Spacing.m)
-                .glassSurface(radius: Radius.control)
-                .accessibilityIdentifier("profile.quickLog")
-                Button {
-                    isShowingQuickLogSetup = true
-                } label: {
-                    Label("הגדרת האוטומציה", systemImage: "wave.3.right")
+
+                if !store.isShared {
+                    GlassCard {
+                        HStack(alignment: .top, spacing: Spacing.m) {
+                            FeatureIcon(symbol: "person.2", color: Color(uiColor: UIColor(hex: 0xE056B0)), size: 40)
+                            VStack(alignment: .leading, spacing: Spacing.s) {
+                                Text("מנהלים את הכסף יחד?")
+                                    .font(.headline)
+                                    .foregroundStyle(Theme.textPrimary)
+                                Text("מזמינים בן או בת זוג, וכל אחד רואה את ההוצאות של כולם.")
+                                    .font(.subheadline)
+                                    .foregroundStyle(Theme.textSecondary)
+                                Button("הזמנה לחשבון משותף") { isShowingSettings = true }
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Theme.brandInk)
+                                    .accessibilityIdentifier("profile.invite")
+                            }
+                        }
+                    }
                 }
-                .buttonStyle(.glassSecondary)
-                .accessibilityIdentifier("profile.quickLogSetup")
-                Button {
-                    isShowingTrips = true
-                } label: {
-                    Label("טיולים", systemImage: "airplane")
+
+                GlassCard {
+                    HStack(spacing: Spacing.m) {
+                        FeatureIcon(symbol: "chart.bar", color: Color(uiColor: UIColor(hex: 0xF59E0B)), size: 40)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("דוחות וגרפים")
+                                .font(.headline)
+                                .foregroundStyle(Theme.textPrimary)
+                            Text("התפלגות לפי קטגוריות, השוואה בין חודשים וסיכום חודשי. בקרוב.")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.textSecondary)
+                        }
+                    }
                 }
-                .buttonStyle(.glassSecondary)
-                .accessibilityIdentifier("profile.trips")
-                Button("התנתקות") {
-                    Task { await app.signOut() }
-                }
-                .buttonStyle(.glassSecondary)
-                .accessibilityIdentifier("profile.signOut")
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.xl)
         }
-        .sheet(isPresented: $isShowingTrips) {
-            TripsView(store: store)
-        }
-        .sheet(isPresented: $isShowingQuickLogSetup) {
-            QuickLogSetupView(store: store)
+        .fullScreenCover(isPresented: $isShowingSettings) {
+            SettingsView(store: store)
+                .environment(app)
+                .environment(\.layoutDirection, .rightToLeft)
+                .environment(\.locale, Locale(identifier: "he_IL"))
         }
     }
 }

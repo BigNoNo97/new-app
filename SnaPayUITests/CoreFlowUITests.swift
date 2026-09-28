@@ -86,6 +86,7 @@ final class CoreFlowUITests: XCTestCase {
         let app = launchSignedIn()
 
         tap(app.buttons["tab.profile"], in: app)
+        tap(app.buttons["profile.settings"], in: app)
         tap(app.buttons["profile.trips"], in: app)
         tap(app.buttons["trips.new"], in: app)
         type("ניו יורק", into: app.textFields["trip.name"], in: app)
@@ -94,6 +95,7 @@ final class CoreFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["ניו יורק"].waitForExistence(timeout: 5))
         screenshot(app, "trips-light")
         app.buttons["סגירה"].firstMatch.tap()
+        tap(app.buttons["settings.close"], in: app)
 
         tap(app.buttons["tab.home"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["home.trip"].firstMatch.waitForExistence(timeout: 5))

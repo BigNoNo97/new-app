@@ -193,6 +193,18 @@ struct QuickLogContextTests {
         #expect(row.occurredAt == payment.capturedAt)
     }
 
+    @Test func contextRoundTripsAndOlderFilesDecode() throws {
+        var context = context([category("אוכל", order: 0)])
+        context.remindsPendingCapture = false
+        let data = try JSONEncoder().encode(context)
+        #expect(try JSONDecoder().decode(QuickLogContext.self, from: data) == context)
+
+        var object = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        object["remindsPendingCapture"] = nil
+        let older = try JSONDecoder().decode(QuickLogContext.self, from: JSONSerialization.data(withJSONObject: object))
+        #expect(older.remindsPendingCapture)
+    }
+
     @Test func foreignPaymentWithoutRatesThrows() {
         let payment = CapturedPayment(amount: 10, currency: "USD", merchant: "Amazon")
         #expect(throws: CurrencyConverterError.self) { try context([]).makeRow(for: payment) }

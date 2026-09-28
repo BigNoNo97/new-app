@@ -83,6 +83,8 @@ final class SupabaseServices: AuthServicing, AccountRepository {
         try? await client.auth.signOut()
     }
 
+    var currentEmail: String? { client.auth.currentUser?.email }
+
     // MARK: AccountRepository
 
     func fetchProfile(userID: UUID) async throws -> Profile {

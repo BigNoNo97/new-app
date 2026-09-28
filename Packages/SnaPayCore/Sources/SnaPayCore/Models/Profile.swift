@@ -11,6 +11,12 @@ public struct Profile: Codable, Equatable, Sendable {
     public var onboardingCompleted: Bool
     public var activeHouseholdID: UUID?
     public var createdAt: Date?
+    // Notifications (settings screen). Missing in older cached profiles, so decoded with defaults.
+    public var notifyPartnerActivity = true
+    public var notifyBudget = true
+    public var notifyMonthlyRecap = true
+    public var notifyPendingCapture = true
+    public var notifyTips = false
 
     public init(
         id: UUID,
@@ -47,6 +53,24 @@ public struct Profile: Codable, Equatable, Sendable {
         onboardingCompleted = try c.decode(Bool.self, forKey: .onboardingCompleted)
         activeHouseholdID = try c.decodeIfPresent(UUID.self, forKey: .activeHouseholdID)
         createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+        notifyPartnerActivity = try c.decodeIfPresent(Bool.self, forKey: .notifyPartnerActivity) ?? true
+        notifyBudget = try c.decodeIfPresent(Bool.self, forKey: .notifyBudget) ?? true
+        notifyMonthlyRecap = try c.decodeIfPresent(Bool.self, forKey: .notifyMonthlyRecap) ?? true
+        notifyPendingCapture = try c.decodeIfPresent(Bool.self, forKey: .notifyPendingCapture) ?? true
+        notifyTips = try c.decodeIfPresent(Bool.self, forKey: .notifyTips) ?? false
+    }
+
+    /// Applies the fields a settings change carries.
+    public mutating func apply(_ changes: ProfileChanges) {
+        if let value = changes.fullName { fullName = value }
+        if let value = changes.monthStartDay { monthStartDay = value }
+        if let value = changes.cardFxFeePercent { cardFxFeePercent = value }
+        if let value = changes.quickLogEnabled { quickLogEnabled = value }
+        if let value = changes.notifyPartnerActivity { notifyPartnerActivity = value }
+        if let value = changes.notifyBudget { notifyBudget = value }
+        if let value = changes.notifyMonthlyRecap { notifyMonthlyRecap = value }
+        if let value = changes.notifyPendingCapture { notifyPendingCapture = value }
+        if let value = changes.notifyTips { notifyTips = value }
     }
 
     enum CodingKeys: String, CodingKey {
@@ -59,6 +83,11 @@ public struct Profile: Codable, Equatable, Sendable {
         case onboardingCompleted = "onboarding_completed"
         case activeHouseholdID = "active_household_id"
         case createdAt = "created_at"
+        case notifyPartnerActivity = "notify_partner_activity"
+        case notifyBudget = "notify_budget"
+        case notifyMonthlyRecap = "notify_monthly_recap"
+        case notifyPendingCapture = "notify_pending_capture"
+        case notifyTips = "notify_tips"
     }
 }
 
