@@ -7,3 +7,4 @@ DerivedData/
 xcuserdata/
 *.xcarchive
 .DS_Store
+Config/Secrets.xcconfig

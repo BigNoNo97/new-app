@@ -1,0 +1,7 @@
+// Build settings for the app target. Supabase values are empty by default; CI writes
+// Config/Secrets.xcconfig from the repository variables SUPABASE_URL and SUPABASE_ANON_KEY
+// (that file is git-ignored). Without them the app shows "the server isn't configured yet".
+SUPABASE_URL =
+SUPABASE_ANON_KEY =
+
+#include? "Secrets.xcconfig"

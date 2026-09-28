@@ -113,5 +113,6 @@ struct BottomBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selection == tab ? .isSelected : [])
+        .accessibilityIdentifier("tab.\(tab)")
     }
 }

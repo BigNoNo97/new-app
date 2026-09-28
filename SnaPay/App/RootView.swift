@@ -1,70 +1,48 @@
 import SwiftUI
 
-enum AppTab: CaseIterable, Hashable {
-    case home, expenses, goals, profile
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .home: "בית"
-        case .expenses: "הוצאות"
-        case .goals: "יעדים"
-        case .profile: "פרופיל"
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .home: "house"
-        case .expenses: "list.bullet.rectangle"
-        case .goals: "flag"
-        case .profile: "person"
-        }
-    }
-}
-
+/// Shows the screen for the current `AppRoute`.
 struct RootView: View {
-    @State private var selection: AppTab = .home
-    @State private var isAddSheetPresented = false
+    @Environment(AppState.self) private var app
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
             AppBackground()
-            Group {
-                switch selection {
-                case .home: HomeView()
-                case .expenses: ExpensesView()
-                case .goals: GoalsView()
-                case .profile: ProfileView()
-                }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            content
+                .transition(.opacity)
         }
-        .safeAreaInset(edge: .bottom) {
-            BottomBar(selection: $selection) {
-                isAddSheetPresented = true
-            }
-            .padding(.horizontal, Spacing.m)
+        .animation(.easeInOut(duration: 0.25), value: app.route)
+        .task { await app.start() }
+        .onOpenURL { url in
+            Task { await app.handle(url: url) }
         }
-        .sheet(isPresented: $isAddSheetPresented) {
-            AddTransactionPlaceholder()
-                .presentationDetents([.large])
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background { app.appDidEnterBackground() }
+        }
+        .alert(
+            "הקישור לא עבד",
+            isPresented: Binding(get: { app.linkError != nil }, set: { if !$0 { app.linkError = nil } })
+        ) {
+            Button("הבנתי", role: .cancel) {}
+        } message: {
+            Text("ייתכן שהקישור כבר שומש או שפג תוקפו. אפשר לבקש קישור חדש ממסך ההתחברות.")
         }
     }
-}
 
-private struct AddTransactionPlaceholder: View {
-    var body: some View {
-        VStack(spacing: Spacing.m) {
-            Text("הוספת הוצאה או הכנסה")
-                .font(.title2.weight(.semibold))
-            Text("המסך הזה ייבנה בשלב הליבה.")
-                .foregroundStyle(.secondary)
+    @ViewBuilder
+    private var content: some View {
+        switch app.route {
+        case .launching: LaunchView()
+        case .serverNotConfigured: ServerNotConfiguredView()
+        case .notificationPrompt: NotificationPermissionView()
+        case .welcome: WelcomeFlowView()
+        case .checkEmail(let email): CheckEmailView(email: email)
+        case .resetPassword: ResetPasswordView()
+        case .niceToMeetYou: NiceToMeetYouView()
+        case .categories: CategoryPickerView()
+        case .locked: FaceIDLockView()
+        case .main: MainTabView()
+        case .connectionProblem: ConnectionProblemView()
         }
-        .padding(Spacing.l)
     }
-}
-
-#Preview {
-    RootView()
-        .environment(\.layoutDirection, .rightToLeft)
 }

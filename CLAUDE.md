@@ -33,6 +33,10 @@
 - `SnaPay/DesignSystem/` — צבעים, מרווחים ורכיבי זכוכית. כל צבע באפליקציה מגיע מ-`Theme`.
 - `SnaPayWidget/` — הווידג'ט.
 - `Packages/SnaPayCore/` — לוגיקה עסקית בלי ממשק: המרת מטבע, חודש פיננסי, חיובים מחזוריים, הצעת קטגוריה וקריאת קבצי עו"ש. כל לוגיקה שאפשר לבדוק בלי ממשק נכנסת לכאן, עם טסטים.
+- `SnaPay/App/AppState.swift` — מצב האפליקציה: איזה מסך מוצג וזרימות החשבון. השירותים (`SnaPay/Core/Services/`) מוגדרים כפרוטוקולים, עם מימוש Supabase ומימוש בזיכרון לטסטי ממשק (`-uiTesting`).
+- `SnaPayUITests/` — טסטי ממשק. בכל ריצה ב-CI נשמרים צילומי מסך בבהיר ובכהה כקובץ `screenshots` של הבנייה.
+- `supabase/` — צד השרת: מיגרציות (`migrations/`), טסטי pgTAP להרשאות (`tests/`), פונקציות שרת (`functions/`) ותבניות מייל בעברית (`templates/`).
+- `Config/App.xcconfig` — כתובת ומפתח Supabase. הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
 - `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
 - `.github/workflows/` — בדיקת קוד על כל שינוי, והעלאה ל-TestFlight על כל מיזוג ל-`main`.
 
@@ -40,11 +44,22 @@
 
 אין Mac בסביבת הפיתוח, ובסביבת הענן אין Swift. הקמפול והטסטים רצים ב-GitHub Actions על macOS. פקודות מקבילות על Mac:
 
+בסביבת הענן אפשר להריץ את טסטי מסד הנתונים על Postgres מקומי, בלי Docker:
+
+```
+apt-get install -y postgresql-16-pgtap   # פעם אחת
+scripts/db-test-local.sh
+```
+
+פקודות לבדיקת האפליקציה על Mac:
+
 ```
 swift test --package-path Packages/SnaPayCore
 brew install xcodegen && xcodegen generate
-xcodebuild build -project SnaPay.xcodeproj -scheme SnaPay -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+xcodebuild test -project SnaPay.xcodeproj -scheme SnaPay -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
 ```
+
+- כל שינוי במבנה הנתונים הוא מיגרציה חדשה ב-`supabase/migrations/`, עם טסט הרשאות מתאים ב-`supabase/tests/`.
 
 ### כללי עיצוב (חובה)
 

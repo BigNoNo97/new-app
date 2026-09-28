@@ -1,7 +1,8 @@
 name: TestFlight
 
 # Builds, signs and uploads every merge to main to TestFlight.
-# Stays off until the repository variable TESTFLIGHT_ENABLED is "true" and these secrets exist:
+# Stays off until the repository variable TESTFLIGHT_ENABLED is "true" and these secrets exist.
+# Repository variables SUPABASE_URL and SUPABASE_ANON_KEY point the build at the server.
 #   APPLE_TEAM_ID    – the 10-character Team ID from developer.apple.com/account
 #   ASC_KEY_ID       – App Store Connect API key ID (key role: Admin, for cloud signing)
 #   ASC_ISSUER_ID    – App Store Connect API issuer ID
@@ -39,6 +40,17 @@ jobs:
         env:
           ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
         run: printf '%s' "$ASC_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+
+      - name: Write Supabase settings
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: |
+          # In .xcconfig files "//" starts a comment, so the URL's slashes are split with $().
+          {
+            echo "SUPABASE_URL = ${SUPABASE_URL/\/\//\/\$()\/}"
+            echo "SUPABASE_ANON_KEY = $SUPABASE_ANON_KEY"
+          } > Config/Secrets.xcconfig
 
       - name: Generate Xcode project
         run: |

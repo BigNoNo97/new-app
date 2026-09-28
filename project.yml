@@ -21,6 +21,9 @@ settings:
 packages:
   SnaPayCore:
     path: Packages/SnaPayCore
+  Supabase:
+    url: https://github.com/supabase/supabase-swift
+    from: "2.20.0"
 
 targets:
   SnaPay:
@@ -28,8 +31,13 @@ targets:
     platform: iOS
     sources:
       - SnaPay
+    configFiles:
+      Debug: Config/App.xcconfig
+      Release: Config/App.xcconfig
     dependencies:
       - package: SnaPayCore
+      - package: Supabase
+        product: Supabase
       - target: SnaPayWidget
     entitlements:
       path: SnaPay/SnaPay.entitlements
@@ -50,6 +58,11 @@ targets:
         NSCameraUsageDescription: "SnaPay משתמשת במצלמה כדי לצלם קבלות ולמלא את פרטי ההוצאה אוטומטית."
         NSPhotoLibraryUsageDescription: "SnaPay ניגשת לתמונות כדי לצרף קבלה להוצאה."
         UIBackgroundModes: [remote-notification]
+        CFBundleURLTypes:
+          - CFBundleURLName: com.bignono97.snapay
+            CFBundleURLSchemes: [snapay]
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
@@ -80,11 +93,28 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
+  SnaPayUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - SnaPayUITests
+    dependencies:
+      - target: SnaPay
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.uitests
+        TEST_TARGET_NAME: SnaPay
+
 schemes:
   SnaPay:
     build:
       targets:
         SnaPay: all
+        SnaPayUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - SnaPayUITests
     run:
       config: Debug
     archive:

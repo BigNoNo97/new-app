@@ -1,0 +1,77 @@
+name: Supabase
+
+# Tests the database (migrations + RLS) and edge functions on every change under supabase/.
+# On main, deploys them to the hosted project once these exist:
+#   secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROJECT_REF, SUPABASE_DB_PASSWORD
+
+on:
+  pull_request:
+    paths: ["supabase/**", ".github/workflows/supabase.yml"]
+  push:
+    branches: [main]
+    paths: ["supabase/**", ".github/workflows/supabase.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check edge functions
+        run: |
+          deno lint supabase/functions
+          for fn in supabase/functions/*/index.ts; do deno check "$fn"; done
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Database tests
+        run: supabase test db
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+    steps:
+      - name: Skip until the Supabase project is configured
+        if: env.SUPABASE_ACCESS_TOKEN == '' || env.PROJECT_REF == ''
+        run: echo "Supabase secrets are not set yet; skipping deploy."
+
+      - uses: actions/checkout@v5
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != ''
+
+      - uses: supabase/setup-cli@v1
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != ''
+        with:
+          version: latest
+
+      - name: Deploy database, auth settings and functions
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.PROJECT_REF != ''
+        run: |
+          supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase db push --password "$SUPABASE_DB_PASSWORD"
+          supabase config push --project-ref "$PROJECT_REF" --yes
+          supabase functions deploy --project-ref "$PROJECT_REF"

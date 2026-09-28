@@ -22,8 +22,19 @@ struct GoalsView: View {
 }
 
 struct ProfileView: View {
+    @Environment(AppState.self) private var app
+
     var body: some View {
-        PlaceholderScreen(title: "פרופיל", message: "כאן יופיעו הפרטים שלך, הדוחות וההגדרות.")
+        VStack(spacing: 0) {
+            PlaceholderScreen(title: "פרופיל", message: "כאן יופיעו הפרטים שלך, הדוחות וההגדרות.")
+            // Temporary until the settings screen: lets testers switch accounts.
+            Button("התנתקות") {
+                Task { await app.signOut() }
+            }
+            .buttonStyle(.glass)
+            .padding(Spacing.m)
+            .accessibilityIdentifier("profile.signOut")
+        }
     }
 }
 
