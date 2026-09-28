@@ -40,3 +40,22 @@ protocol AccountRepository: AnyObject {
     /// Saves the onboarding categories (idempotent) and marks onboarding as done.
     func completeOnboarding(userID: UUID, householdID: UUID, categories: [CategoryDraft]) async throws
 }
+
+/// Household data: categories, members, transactions, recurring rules and exchange rates.
+protocol DataRepository: AnyObject {
+    func fetchCategories(householdID: UUID) async throws -> [CategoryItem]
+    func fetchMembers(householdID: UUID) async throws -> [HouseholdMember]
+    /// Transactions that occurred at or after `since`, newest first.
+    func fetchTransactions(householdID: UUID, since: Date) async throws -> [TransactionRow]
+    /// Up to `limit` transactions that occurred before `before`, newest first.
+    func fetchTransactions(householdID: UUID, before: Date, limit: Int) async throws -> [TransactionRow]
+    /// Inserts or updates by id.
+    func saveTransactions(_ rows: [TransactionRow]) async throws
+    /// Inserts generated transactions, skipping any whose (household, source, external id) exists.
+    func insertIgnoringDuplicates(_ rows: [TransactionRow]) async throws
+    func deleteTransaction(id: UUID) async throws
+    func saveCategory(_ category: CategoryItem) async throws
+    func fetchRecurringRules(userID: UUID) async throws -> [RecurringRuleRow]
+    func saveRecurringRule(_ rule: RecurringRuleRow) async throws
+    func fetchExchangeRates() async throws -> ExchangeRates
+}

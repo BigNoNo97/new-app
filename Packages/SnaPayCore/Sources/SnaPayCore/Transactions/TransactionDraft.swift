@@ -115,7 +115,7 @@ public struct TransactionDraft: Equatable, Sendable {
     }
 
     /// The currency a new expense should default to: the active trip's, else the main one.
-    public static func defaultCurrency(mainCurrency: String, categories: [Category], on date: Date, calendar: Calendar = .current) -> String {
+    public static func defaultCurrency(mainCurrency: String, categories: [CategoryItem], on date: Date, calendar: Calendar = .current) -> String {
         categories.first { $0.isActiveTrip(on: date, calendar: calendar) }?.tripCurrency ?? mainCurrency
     }
 

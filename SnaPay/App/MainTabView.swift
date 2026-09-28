@@ -24,10 +24,20 @@ enum AppTab: CaseIterable, Hashable {
 
 /// The signed-in app: tab content with the floating bottom bar.
 struct MainTabView: View {
+    @Environment(AppState.self) private var app
     @State private var selection: AppTab = .home
     @State private var isAddSheetPresented = false
 
     var body: some View {
+        if let store = app.store {
+            tabs(store: store)
+                .environment(store)
+        } else {
+            LaunchView()
+        }
+    }
+
+    private func tabs(store: TransactionStore) -> some View {
         ZStack {
             Group {
                 switch selection {
@@ -46,25 +56,8 @@ struct MainTabView: View {
             .padding(.horizontal, Spacing.m)
         }
         .sheet(isPresented: $isAddSheetPresented) {
-            AddTransactionPlaceholder()
+            AddTransactionSheet(store: store)
                 .presentationDetents([.large])
         }
     }
-}
-
-private struct AddTransactionPlaceholder: View {
-    var body: some View {
-        VStack(spacing: Spacing.m) {
-            Text("הוספת הוצאה או הכנסה")
-                .font(.title2.weight(.semibold))
-            Text("המסך הזה ייבנה בשלב הליבה.")
-                .foregroundStyle(.secondary)
-        }
-        .padding(Spacing.l)
-    }
-}
-
-#Preview {
-    MainTabView()
-        .environment(\.layoutDirection, .rightToLeft)
 }

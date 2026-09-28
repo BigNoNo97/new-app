@@ -132,7 +132,7 @@ public struct TransactionRow: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// A row of `public.categories`, as read back from the server.
-public struct Category: Codable, Identifiable, Hashable, Sendable {
+public struct CategoryItem: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var householdID: UUID
     public var name: String

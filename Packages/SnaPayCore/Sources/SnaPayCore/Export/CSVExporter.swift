@@ -60,7 +60,7 @@ public enum CSVExporter {
         return String(format: "%02d/%02d/%04d", c.day ?? 0, c.month ?? 0, c.year ?? 0)
     }
 
-    static func sourceName(_ source: TransactionSource) -> String {
+    public static func sourceName(_ source: TransactionSource) -> String {
         switch source {
         case .manual: "ידני"
         case .applePay: "Apple Pay"

@@ -22,6 +22,9 @@ enum AppConfig {
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
     static let forcesDarkMode = ProcessInfo.processInfo.arguments.contains("-uiTestingDark")
 
+    /// Shared with the widget and the quick-log intent.
+    static let appGroup = "group.com.bignono97.snapay"
+
     static let authCallbackURL = URL(string: "snapay://auth-callback")!
     static let resetPasswordURL = URL(string: "snapay://reset-password")!
 

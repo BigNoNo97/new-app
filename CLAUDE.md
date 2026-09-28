@@ -34,8 +34,10 @@
 - `SnaPayWidget/` — הווידג'ט.
 - `Packages/SnaPayCore/` — לוגיקה עסקית בלי ממשק: המרת מטבע, חודש פיננסי, חיובים מחזוריים, הצעת קטגוריה וקריאת קבצי עו"ש. כל לוגיקה שאפשר לבדוק בלי ממשק נכנסת לכאן, עם טסטים.
 - `SnaPay/App/AppState.swift` — מצב האפליקציה: איזה מסך מוצג וזרימות החשבון. השירותים (`SnaPay/Core/Services/`) מוגדרים כפרוטוקולים, עם מימוש Supabase ומימוש בזיכרון לטסטי ממשק (`-uiTesting`).
+- `SnaPay/Core/Store/TransactionStore.swift` — נתוני משק הבית באפליקציה: עותק מקומי בקובץ ב-App Group, תור שינויים (outbox) לעבודה בלי רשת, ויצירת חיובים קבועים בכל פתיחה.
 - `SnaPayUITests/` — טסטי ממשק. בכל ריצה ב-CI נשמרים צילומי מסך בבהיר ובכהה כקובץ `screenshots` של הבנייה.
 - `supabase/` — צד השרת: מיגרציות (`migrations/`), טסטי pgTAP להרשאות (`tests/`), פונקציות שרת (`functions/`) ותבניות מייל בעברית (`templates/`).
+- צילומי המסך האחרונים מה-CI נמצאים גם בענף `ci-screenshots`. אפשר למשוך אותם עם `git fetch origin ci-screenshots` ולפתוח את הקבצים לבדיקה ויזואלית.
 - `Config/App.xcconfig` — כתובת ומפתח Supabase. הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
 - `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
 - `.github/workflows/` — בדיקת קוד על כל שינוי, והעלאה ל-TestFlight על כל מיזוג ל-`main`.

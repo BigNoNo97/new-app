@@ -86,6 +86,7 @@ struct BottomBar: View {
                         .shadow(color: Theme.brand.opacity(0.35), radius: 12, y: 6)
                 }
                 .accessibilityLabel(Text("הוספה"))
+                .accessibilityIdentifier("tab.add")
                 .offset(y: -14)
                 .frame(maxWidth: .infinity)
                 item(.goals)

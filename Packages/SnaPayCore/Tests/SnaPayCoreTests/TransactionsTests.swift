@@ -80,7 +80,7 @@ struct TransactionDraftTests {
     }
 
     @Test func defaultCurrencyFollowsActiveTrip() {
-        let trip = Category(id: travel, householdID: household, name: "איטליה", emoji: "✈️", color: "#0EA5E9",
+        let trip = CategoryItem(id: travel, householdID: household, name: "איטליה", emoji: "✈️", color: "#0EA5E9",
                             tripCurrency: "EUR", tripStartsOn: "2026-10-01", tripEndsOn: "2026-10-10")
         #expect(TransactionDraft.defaultCurrency(mainCurrency: "ILS", categories: [trip], on: date(2026, 10, 10), calendar: .israel) == "EUR")
         #expect(TransactionDraft.defaultCurrency(mainCurrency: "ILS", categories: [trip], on: date(2026, 10, 11), calendar: .israel) == "ILS")

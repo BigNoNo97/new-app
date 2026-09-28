@@ -4,7 +4,7 @@ import SnaPayCore
 
 /// Auth and account data backed by Supabase.
 final class SupabaseServices: AuthServicing, AccountRepository {
-    private let client: SupabaseClient
+    let client: SupabaseClient
 
     init(url: URL, anonKey: String) {
         client = SupabaseClient(supabaseURL: url, supabaseKey: anonKey)
@@ -13,7 +13,12 @@ final class SupabaseServices: AuthServicing, AccountRepository {
     // MARK: AuthServicing
 
     func restoreSession() async -> UUID? {
-        try? await client.auth.session.user.id
+        if let session = try? await client.auth.session {
+            return session.user.id
+        }
+        // Offline with an expired access token: keep the user signed in; the SDK refreshes the
+        // session on the next request once the connection is back.
+        return client.auth.currentSession?.user.id
     }
 
     func signUp(fullName: String, email: String, password: String, mainCurrency: String) async throws -> SignUpOutcome {

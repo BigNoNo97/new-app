@@ -28,28 +28,32 @@ final class AppState {
 
     private let auth: AuthServicing
     private let account: AccountRepository
+    private let data: DataRepository
+    /// The signed-in user's data; set once they reach the main app.
+    private(set) var store: TransactionStore?
     private var userID: UUID?
     private var isUnlocked = false
 
-    init(auth: AuthServicing, account: AccountRepository) {
+    init(auth: AuthServicing, account: AccountRepository, data: DataRepository) {
         self.auth = auth
         self.account = account
+        self.data = data
     }
 
     /// The services the app runs with: Supabase, or in-memory for UI tests.
     static func live() -> AppState {
         if AppConfig.isUITesting {
             let services = InMemoryServices()
-            return AppState(auth: services, account: services)
+            return AppState(auth: services, account: services, data: services)
         }
         guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
             let services = InMemoryServices()
-            let state = AppState(auth: services, account: services)
+            let state = AppState(auth: services, account: services, data: services)
             state.route = .serverNotConfigured
             return state
         }
         let services = SupabaseServices(url: url, anonKey: key)
-        return AppState(auth: services, account: services)
+        return AppState(auth: services, account: services, data: services)
     }
 
     // MARK: Launch
@@ -130,6 +134,9 @@ final class AppState {
 
     func signOut() async {
         await auth.signOut()
+        store?.eraseLocalData()
+        store = nil
+        DevicePreferences.cachedProfile = nil
         profile = nil
         userID = nil
         isUnlocked = false
@@ -148,6 +155,7 @@ final class AppState {
         }
         try await account.completeOnboarding(userID: userID, householdID: household, categories: categories)
         self.profile?.onboardingCompleted = true
+        openStore()
         route = .main
     }
 
@@ -175,23 +183,42 @@ final class AppState {
 
     private func enterApp(userID: UUID) async {
         self.userID = userID
+        let profile: Profile
         do {
-            let profile = try await account.fetchProfile(userID: userID)
-            self.profile = profile
-            if !profile.onboardingCompleted {
-                route = .niceToMeetYou
-            } else if DevicePreferences.isFaceIDEnabled && !isUnlocked && !AppConfig.isUITesting {
-                route = .locked
-            } else {
-                route = .main
-            }
+            profile = try await account.fetchProfile(userID: userID)
+            DevicePreferences.cachedProfile = profile
         } catch let error where Self.isConnectionError(error) {
-            route = .connectionProblem
+            // Offline: carry on with the profile saved on this device, if it's this user's.
+            guard let cached = DevicePreferences.cachedProfile, cached.id == userID else {
+                route = .connectionProblem
+                return
+            }
+            profile = cached
         } catch {
             // Session exists but the profile can't be read (e.g. deleted account): start over.
             await auth.signOut()
             route = .welcome
+            return
         }
+        self.profile = profile
+        if !profile.onboardingCompleted {
+            route = .niceToMeetYou
+            return
+        }
+        openStore()
+        if DevicePreferences.isFaceIDEnabled && !isUnlocked && !AppConfig.isUITesting {
+            route = .locked
+        } else {
+            route = .main
+        }
+    }
+
+    private func openStore() {
+        guard let profile, let userID, let household = profile.activeHouseholdID else { return }
+        guard store?.userID != userID else { return }
+        let store = TransactionStore(profile: profile, userID: userID, householdID: household, repository: data)
+        self.store = store
+        Task { await store.start() }
     }
 
     func retryAfterConnectionProblem() async {

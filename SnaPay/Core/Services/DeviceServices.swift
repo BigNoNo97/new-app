@@ -1,4 +1,5 @@
 import Foundation
+import SnaPayCore
 import LocalAuthentication
 import UserNotifications
 
@@ -40,6 +41,12 @@ enum DevicePreferences {
     static var hasSeenNotificationPrompt: Bool {
         get { defaults.bool(forKey: "hasSeenNotificationPrompt") }
         set { defaults.set(newValue, forKey: "hasSeenNotificationPrompt") }
+    }
+
+    /// The last profile loaded from the server, so the app opens offline.
+    static var cachedProfile: Profile? {
+        get { defaults.data(forKey: "cachedProfile").flatMap { try? JSONDecoder().decode(Profile.self, from: $0) } }
+        set { defaults.set(newValue.flatMap { try? JSONEncoder().encode($0) }, forKey: "cachedProfile") }
     }
 
     static var isFaceIDEnabled: Bool {
