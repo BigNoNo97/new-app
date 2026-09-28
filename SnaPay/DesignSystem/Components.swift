@@ -46,7 +46,7 @@ struct PrimaryButtonStyle: ButtonStyle {
 }
 
 /// Secondary action: glass, rounded rectangle.
-struct GlassButtonStyle: ButtonStyle {
+struct SecondaryGlassButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.headline)
@@ -62,8 +62,8 @@ extension ButtonStyle where Self == PrimaryButtonStyle {
     static var primary: PrimaryButtonStyle { PrimaryButtonStyle() }
 }
 
-extension ButtonStyle where Self == GlassButtonStyle {
-    static var glass: GlassButtonStyle { GlassButtonStyle() }
+extension ButtonStyle where Self == SecondaryGlassButtonStyle {
+    static var glassSecondary: SecondaryGlassButtonStyle { SecondaryGlassButtonStyle() }
 }
 
 /// The floating bottom navigation: a rounded-rectangle glass bar (not a capsule) with a
@@ -113,5 +113,6 @@ struct BottomBar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selection == tab ? .isSelected : [])
+        .accessibilityIdentifier("tab.\(tab)")
     }
 }
