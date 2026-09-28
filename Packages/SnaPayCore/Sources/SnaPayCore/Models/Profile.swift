@@ -36,6 +36,19 @@ public struct Profile: Codable, Equatable, Sendable {
 
     public var firstName: String { PersonName.firstName(from: fullName) }
 
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        fullName = try c.decode(String.self, forKey: .fullName)
+        mainCurrency = try c.decode(String.self, forKey: .mainCurrency)
+        monthStartDay = try c.decode(Int.self, forKey: .monthStartDay)
+        cardFxFeePercent = try c.decodeDecimal(forKey: .cardFxFeePercent, scale: 2)
+        quickLogEnabled = try c.decode(Bool.self, forKey: .quickLogEnabled)
+        onboardingCompleted = try c.decode(Bool.self, forKey: .onboardingCompleted)
+        activeHouseholdID = try c.decodeIfPresent(UUID.self, forKey: .activeHouseholdID)
+        createdAt = try c.decodeIfPresent(Date.self, forKey: .createdAt)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case fullName = "full_name"

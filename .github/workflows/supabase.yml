@@ -35,6 +35,7 @@ jobs:
         run: |
           deno lint supabase/functions
           for fn in supabase/functions/*/index.ts; do deno check "$fn"; done
+          deno test supabase/functions
 
       - name: Start local Supabase
         run: supabase start

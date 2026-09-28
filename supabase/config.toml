@@ -49,3 +49,6 @@ enabled = true
 
 [functions.delete-account]
 verify_jwt = true
+
+[functions.exchange-rates]
+verify_jwt = true

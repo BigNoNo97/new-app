@@ -15,7 +15,10 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      # Pushes screenshots to the ci-screenshots branch (see the last step).
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -67,3 +70,40 @@ jobs:
           path: build/screenshots
           if-no-files-found: ignore
           retention-days: 14
+
+      # Artifacts download through blob storage that some reviewers (and the cloud dev
+      # environment) can't reach, so the latest screenshots also live on a branch:
+      # ci-screenshots/<run>/<screen-name>.png. The branch is owned by CI and replaced each run.
+      - name: Publish screenshots to the ci-screenshots branch
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f build/screenshots/manifest.json ] || exit 0
+          OUT="$RUNNER_TEMP/ci-screenshots"
+          mkdir -p "$OUT"
+          python3 - "$OUT" <<'PY'
+          import json, os, re, shutil, sys
+          out = sys.argv[1]
+          src = "build/screenshots"
+          def walk(node):
+              if isinstance(node, dict):
+                  if "exportedFileName" in node and "suggestedHumanReadableName" in node:
+                      yield node
+                  for value in node.values():
+                      yield from walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      yield from walk(value)
+          for item in walk(json.load(open(os.path.join(src, "manifest.json")))):
+              name = re.sub(r"_\d+_[0-9A-F-]+\.png$", ".png", item["suggestedHumanReadableName"])
+              shutil.copy(os.path.join(src, item["exportedFileName"]), os.path.join(out, name))
+          PY
+          cd "$OUT"
+          echo "Screenshots from ${{ github.sha }} (${{ github.ref_name }}), run ${{ github.run_id }}" > README.md
+          git init -q
+          git checkout -q -b ci-screenshots
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Screenshots for ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" ci-screenshots
+          ls
