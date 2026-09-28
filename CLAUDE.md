@@ -41,6 +41,12 @@
 - צילומי המסך האחרונים מה-CI נמצאים גם בענף `ci-screenshots`. אפשר למשוך אותם עם `git fetch origin ci-screenshots` ולפתוח את הקבצים לבדיקה ויזואלית.
 - `Config/App.xcconfig` — כתובת ומפתח Supabase. הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
 - `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
+- `docs/design/claude-design/` — העיצוב מ-Claude Design, והוא מקור האמת לכל מסך. בתיקייה:
+  - `screens/<id>-light.jpg` ו-`screens/<id>-dark.jpg`: צילום של כל מסך בבהיר ובכהה.
+  - `source/<id>-light.dc.html`: המידות המדויקות. כשהצילום והמקור לא מסכימים, סומכים על המקור.
+  - `design-tokens/tokens.json`: כל הטוקנים.
+  - `brand/`: האייקון והלוגו.
+  - `README.md`: חוקי העיצוב והזרימות.
 - `.github/workflows/` — בדיקת קוד על כל שינוי, והעלאה ל-TestFlight על כל מיזוג ל-`main`.
 
 ### בנייה ובדיקה
