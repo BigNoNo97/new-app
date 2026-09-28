@@ -52,3 +52,6 @@ verify_jwt = true
 
 [functions.exchange-rates]
 verify_jwt = true
+
+[functions.notify-partners]
+verify_jwt = true
