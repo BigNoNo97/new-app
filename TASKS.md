@@ -16,7 +16,7 @@
 - [x] לכתוב פרומפט מלא ל-Claude Design (`docs/design/claude-design-prompt.md`)
 - [x] להקים שלד פרויקט עם XcodeGen (`project.yml`, אפליקציה, ווידג'ט, חבילת `SnaPayCore` עם טסטים)
 - [x] להקים צינור בנייה ל-TestFlight ב-GitHub Actions
-- [ ] לוודא שבדיקת הקוד (CI) עוברת בפעם הראשונה על macOS
+- [x] לוודא שבדיקת הקוד (CI) עוברת בפעם הראשונה על macOS (34 טסטים ובנייה עברו)
 - [ ] אייקון זמני נוצר; להחליף באייקון הסופי מ-Claude Design
 - [ ] ממך: ליצור מזהה אפליקציה ב-App Store Connect
 - [ ] ממך: ליצור מפתח API של App Store Connect ולשמור אותו כסוד ב-GitHub
