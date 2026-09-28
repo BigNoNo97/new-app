@@ -233,13 +233,10 @@ struct FieldErrorText: View {
     let message: LocalizedStringKey
 
     var body: some View {
-        Label {
-            Text(message)
-        } icon: {
-            Image(systemName: "exclamationmark.triangle")
-        }
-        .font(.footnote.weight(.medium))
-        .foregroundStyle(Theme.expense)
+        // One Text (icon inline) so it stays a single static text for VoiceOver and UI tests.
+        Text("\(Image(systemName: "exclamationmark.triangle")) \(Text(message))")
+            .font(.footnote.weight(.medium))
+            .foregroundStyle(Theme.expense)
     }
 }
 

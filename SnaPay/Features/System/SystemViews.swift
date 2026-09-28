@@ -64,7 +64,7 @@ struct ConnectionProblemView: View {
             Spacer()
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
             Text("אין חיבור לשרת")
                 .font(Typography.title2)
                 .foregroundStyle(Theme.textPrimary)
@@ -93,11 +93,11 @@ struct ServerNotConfiguredView: View {
         VStack(spacing: Spacing.m) {
             Image(systemName: "server.rack")
                 .font(.system(size: 48))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
             Text("השרת עדיין לא מוגדר")
                 .font(.title2.weight(.bold))
             Text("הגרסה הזו נבנתה בלי כתובת השרת. אחרי שיוגדר פרויקט Supabase, הגרסה הבאה תעבוד.")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .padding(Spacing.l)

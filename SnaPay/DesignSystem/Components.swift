@@ -35,22 +35,18 @@ struct AppBackground: View {
         Dot(x: 340, y: 790, size: 12, color: 0xFFFFFF, opacity: 0.3),
     ]
 
+    private var gradientStops: [Gradient.Stop] {
+        let stops: [(UInt32, CGFloat)] = scheme == .dark
+            ? [(0x050A12, 0), (0x0A1524, 0.38), (0x08202B, 0.72), (0x06282B, 1)]
+            : [(0xF8FBFD, 0), (0xEDF5F9, 0.45), (0xE4F5EC, 1)]
+        return stops.map { Gradient.Stop(color: Color(uiColor: UIColor(hex: $0.0)), location: $0.1) }
+    }
+
     var body: some View {
         GeometryReader { proxy in
             let scale = proxy.size.width / 393
             ZStack(alignment: .topLeading) {
-                LinearGradient(
-                    stops: scheme == .dark
-                        ? [.init(color: Color(uiColor: UIColor(hex: 0x050A12)), location: 0),
-                           .init(color: Color(uiColor: UIColor(hex: 0x0A1524)), location: 0.38),
-                           .init(color: Color(uiColor: UIColor(hex: 0x08202B)), location: 0.72),
-                           .init(color: Color(uiColor: UIColor(hex: 0x06282B)), location: 1)]
-                        : [.init(color: Color(uiColor: UIColor(hex: 0xF8FBFD)), location: 0),
-                           .init(color: Color(uiColor: UIColor(hex: 0xEDF5F9)), location: 0.45),
-                           .init(color: Color(uiColor: UIColor(hex: 0xE4F5EC)), location: 1)],
-                    startPoint: UnitPoint(x: 0.4, y: 0),
-                    endPoint: UnitPoint(x: 0.6, y: 1)
-                )
+                LinearGradient(stops: gradientStops, startPoint: UnitPoint(x: 0.4, y: 0), endPoint: UnitPoint(x: 0.6, y: 1))
                 ForEach(Self.blooms.indices, id: \.self) { index in
                     let bloom = Self.blooms[index]
                     let color = Color(uiColor: UIColor(hex: scheme == .dark ? bloom.dark : bloom.light))

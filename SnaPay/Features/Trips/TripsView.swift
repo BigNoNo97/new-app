@@ -14,7 +14,7 @@ struct TripsView: View {
                 VStack(alignment: .leading, spacing: Spacing.m) {
                     Text("בזמן טיול, הוצאות חדשות נרשמות במטבע של היעד ומומרות לשקלים, כולל עמלת ההמרה של הכרטיס.")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
 
                     if store.trips.isEmpty {
                         EmptyStateView(symbol: "airplane", title: "עוד אין טיולים", message: "טיול חדש מוסיף קטגוריה עם מטבע ותאריכים.")
@@ -26,9 +26,10 @@ struct TripsView: View {
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(trip.name)
                                             .font(.headline)
+                                            .foregroundStyle(Theme.textPrimary)
                                         Text(dates(of: trip))
                                             .font(.footnote)
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(Theme.textSecondary)
                                     }
                                     Spacer()
                                     Text(trip.tripCurrency ?? "")
@@ -36,10 +37,10 @@ struct TripsView: View {
                                     if trip.isActiveTrip(on: .now) {
                                         Text("עכשיו")
                                             .font(.caption.weight(.bold))
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(Theme.brandInk)
                                             .padding(.horizontal, 8)
                                             .padding(.vertical, 4)
-                                            .background(Theme.brand, in: .rect(cornerRadius: 6))
+                                            .background(Theme.brandTint, in: .rect(cornerRadius: 8))
                                     }
                                 }
                             }
@@ -99,7 +100,7 @@ struct NewTripSheet: View {
                     VStack(alignment: .leading, spacing: Spacing.s) {
                         Text("אימוג'י")
                             .font(.subheadline.weight(.medium))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
                         HStack(spacing: 6) {
                             ForEach(emojis, id: \.self) { option in
                                 Button {

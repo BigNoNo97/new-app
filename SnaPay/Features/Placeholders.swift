@@ -29,12 +29,12 @@ struct ProfileView: View {
                             .font(.body.weight(.medium))
                         Text("חלונית לבחירת קטגוריה אחרי תשלום ב-Apple Pay")
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
                     }
                 }
                 .toggleStyle(.rounded)
                 .padding(Spacing.m)
-                .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
+                .glassSurface(radius: Radius.control)
                 .accessibilityIdentifier("profile.quickLog")
                 Button {
                     isShowingQuickLogSetup = true
@@ -75,10 +75,11 @@ private struct PlaceholderScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.l) {
                 Text(title)
-                    .font(.largeTitle.weight(.bold))
+                    .font(Typography.largeTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 GlassCard {
                     Text(message)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
             .padding(Spacing.m)
