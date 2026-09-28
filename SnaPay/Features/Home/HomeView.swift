@@ -285,6 +285,7 @@ struct DateRangeSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ביטול") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
         }
         .presentationDetents([.medium])

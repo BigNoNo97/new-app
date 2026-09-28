@@ -54,6 +54,7 @@ struct TripsView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("סגירה") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom) {
                 Button("טיול חדש") { isCreating = true }
@@ -133,6 +134,7 @@ struct NewTripSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ביטול") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom) {
                 Button(action: save) {

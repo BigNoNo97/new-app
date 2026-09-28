@@ -221,6 +221,7 @@ struct CategoryEditorSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ביטול") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("שמירה") {
                         var result = draft
@@ -231,6 +232,7 @@ struct CategoryEditorSheet: View {
                     .disabled(!DefaultCategories.isValid(draft))
                     .accessibilityIdentifier("editor.save")
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
         }
     }

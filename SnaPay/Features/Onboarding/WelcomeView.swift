@@ -40,7 +40,8 @@ struct WelcomeView: View {
             VStack(alignment: .leading, spacing: Spacing.s) {
                 Text("כל הוצאה, בלחיצה אחת.")
                     .font(.largeTitle.weight(.bold))
-                Text("SnaPay קולט את התשלום מהאייפון, ואתה רק בוחר קטגוריה.")
+                // \u{200F} (RLM) keeps the paragraph right-to-left although it starts with a Latin word.
+                Text("\u{200F}SnaPay קולט את התשלום מהאייפון, ואתה רק בוחר קטגוריה.")
                     .font(.title3)
                     .foregroundStyle(.secondary)
             }
@@ -125,7 +126,7 @@ private struct WelcomeHero: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("ארומה")
                             .font(.headline)
-                        Text("Apple Pay · עכשיו")
+                        Text("עכשיו · Apple Pay")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

@@ -19,7 +19,7 @@ struct NiceToMeetYouView: View {
                     Text("\(app.profile?.firstName ?? ""), נעים להכיר!")
                         .font(.largeTitle.weight(.bold))
                         .accessibilityIdentifier("nice.title")
-                    Text("SnaPay עוזר לך לדעת לאן הולך הכסף, בלי להקליד כל הוצאה מחדש. הנה מה שמחכה לך:")
+                    Text("\u{200F}SnaPay עוזר לך לדעת לאן הולך הכסף, בלי להקליד כל הוצאה מחדש. הנה מה שמחכה לך:")
                         .font(.body)
                         .foregroundStyle(.secondary)
                 }

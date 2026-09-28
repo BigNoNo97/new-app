@@ -99,6 +99,7 @@ struct TransactionDetailView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("סגירה") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
             .sheet(isPresented: $isEditing) {
                 AddTransactionSheet(store: store, editing: transaction)

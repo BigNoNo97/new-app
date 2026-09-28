@@ -248,6 +248,7 @@ struct FilterSheet: View {
                         dismiss()
                     }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom) {
                 Button("הצגת \(preview.count) תוצאות") {

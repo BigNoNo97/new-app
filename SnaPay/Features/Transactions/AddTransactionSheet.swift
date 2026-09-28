@@ -81,6 +81,7 @@ struct AddTransactionSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("ביטול") { dismiss() }
                 }
+                    .sharedBackgroundVisibility(.hidden)
             }
             .safeAreaInset(edge: .bottom) {
                 Button(action: save) {
