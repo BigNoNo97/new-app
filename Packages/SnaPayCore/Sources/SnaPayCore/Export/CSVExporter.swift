@@ -38,7 +38,10 @@ public enum CSVExporter {
     static func escape(_ field: String) -> String {
         // A leading =, +, - or @ would be run as a formula by spreadsheet apps.
         var value = field
-        if let first = value.first, "=+-@".contains(first), Decimal(string: value) == nil {
+        // Plain negative numbers are left alone. Decimal(string:) is too lenient to decide this
+        // ("-abc" parses), so match the shape exactly.
+        let isNumber = value.range(of: #"^-?[0-9]+(\.[0-9]+)?$"#, options: .regularExpression) != nil
+        if let first = value.first, "=+-@".contains(first), !isNumber {
             value = "'" + value
         }
         guard value.contains(where: { $0 == "," || $0 == "\"" || $0 == "\n" || $0 == "\r" }) else { return value }

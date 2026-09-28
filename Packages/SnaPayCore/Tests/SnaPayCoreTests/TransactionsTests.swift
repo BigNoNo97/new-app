@@ -263,6 +263,9 @@ struct CSVExporterTests {
     @Test func negativeNumbersAreNotQuoted() {
         #expect(CSVExporter.escape("-12.50") == "-12.50")
         #expect(CSVExporter.escape("-abc") == "'-abc")
+        #expect(CSVExporter.escape("+cmd") == "'+cmd")
+        #expect(CSVExporter.escape("-2+3") == "'-2+3")
+        #expect(CSVExporter.escape("@SUM(A1)") == "'@SUM(A1)")
     }
 }
 
