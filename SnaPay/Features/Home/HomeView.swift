@@ -15,6 +15,8 @@ struct HomeView: View {
     )
     @State private var isPickingRange = false
     @State private var selected: TransactionRow?
+    @State private var isShowingQuickLogSetup = false
+    @State private var hidesSetupCard = DevicePreferences.hidesQuickLogSetupCard
 
     private var reportingPeriod: ReportingPeriod {
         switch period {
@@ -54,6 +56,22 @@ struct HomeView: View {
                     .foregroundStyle(Theme.brand)
                 }
 
+                if !store.pendingCaptures.isEmpty {
+                    PendingCapturesCard(store: store)
+                }
+
+                if showsSetupCard {
+                    QuickLogSetupCard(
+                        onOpen: { isShowingQuickLogSetup = true },
+                        onClose: {
+                            withAnimation {
+                                hidesSetupCard = true
+                                DevicePreferences.hidesQuickLogSetupCard = true
+                            }
+                        }
+                    )
+                }
+
                 summaryCard
 
                 if let trip = store.activeTrip {
@@ -64,7 +82,7 @@ struct HomeView: View {
                     EmptyStateView(
                         symbol: "tray",
                         title: "עוד אין כאן הוצאות",
-                        message: "לחיצה על + מוסיפה הוצאה או הכנסה. אחרי שנגדיר את התיעוד בקליק, תשלומי Apple Pay ייכנסו לכאן לבד."
+                        message: "לחיצה על + מוסיפה הוצאה או הכנסה. עם התיעוד בקליק, תשלומי Apple Pay נכנסים לכאן כמעט לבד."
                     )
                 } else {
                     DayGroupedList(groups: TransactionSummary.groupedByDay(periodTransactions), store: store) { selected = $0 }
@@ -80,9 +98,17 @@ struct HomeView: View {
         .sheet(isPresented: $isPickingRange) {
             DateRangeSheet(range: $customRange)
         }
+        .sheet(isPresented: $isShowingQuickLogSetup) {
+            QuickLogSetupView(store: store)
+        }
         .onChange(of: period) { _, newValue in
             if newValue == .custom { isPickingRange = true }
         }
+    }
+
+    /// Until the first Apple Pay payment arrives, unless the user closed the card.
+    private var showsSetupCard: Bool {
+        store.quickLogFirstCaptureAt == nil && store.profile.quickLogEnabled && !hidesSetupCard
     }
 
     private var header: some View {

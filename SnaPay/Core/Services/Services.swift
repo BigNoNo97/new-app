@@ -41,7 +41,8 @@ protocol AccountRepository: AnyObject {
     func completeOnboarding(userID: UUID, householdID: UUID, categories: [CategoryDraft]) async throws
 }
 
-/// Household data: categories, members, transactions, recurring rules and exchange rates.
+/// Household data: categories, members, transactions, recurring rules, exchange rates and the
+/// quick-log merchant map.
 protocol DataRepository: AnyObject {
     func fetchCategories(householdID: UUID) async throws -> [CategoryItem]
     func fetchMembers(householdID: UUID) async throws -> [HouseholdMember]
@@ -58,4 +59,9 @@ protocol DataRepository: AnyObject {
     func fetchRecurringRules(userID: UUID) async throws -> [RecurringRuleRow]
     func saveRecurringRule(_ rule: RecurringRuleRow) async throws
     func fetchExchangeRates() async throws -> ExchangeRates
+    /// How often the household filed each merchant under each category (quick-log suggestions).
+    func fetchMerchantMap(householdID: UUID) async throws -> [MerchantCategoryRow]
+    /// Counts one more choice of `categoryID` for `merchant`.
+    func recordMerchantCategory(householdID: UUID, merchant: String, categoryID: UUID) async throws
+    func updateQuickLogEnabled(userID: UUID, enabled: Bool) async throws
 }

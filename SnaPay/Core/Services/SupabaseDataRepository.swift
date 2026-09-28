@@ -96,4 +96,44 @@ extension SupabaseServices: DataRepository {
         )
         return response.exchangeRates()
     }
+
+    func fetchMerchantMap(householdID: UUID) async throws -> [MerchantCategoryRow] {
+        try await client
+            .from("merchant_category_map")
+            .select("household_id, merchant_key, category_id, times_used")
+            .eq("household_id", value: householdID.uuidString)
+            .order("updated_at", ascending: false)
+            .limit(3000)
+            .execute()
+            .value
+    }
+
+    func recordMerchantCategory(householdID: UUID, merchant: String, categoryID: UUID) async throws {
+        let key = String(CategorySuggester.normalize(merchant).prefix(120))
+        guard !key.isEmpty else { return }
+        try await client
+            .rpc("record_merchant_category", params: [
+                "p_household_id": householdID.uuidString,
+                "p_merchant_key": key,
+                "p_category_id": categoryID.uuidString,
+            ])
+            .execute()
+    }
+
+    func updateQuickLogEnabled(userID: UUID, enabled: Bool) async throws {
+        try await client
+            .from("profiles")
+            .update(["quick_log_enabled": enabled])
+            .eq("id", value: userID.uuidString)
+            .execute()
+    }
+}
+
+extension SupabaseServices {
+    /// One client per process, shared by the app and its quick-log intents (which can run
+    /// with no window open).
+    static let shared: SupabaseServices? = {
+        guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else { return nil }
+        return SupabaseServices(url: url, anonKey: key)
+    }()
 }

@@ -25,6 +25,7 @@ enum AppTab: CaseIterable, Hashable {
 /// The signed-in app: tab content with the floating bottom bar.
 struct MainTabView: View {
     @Environment(AppState.self) private var app
+    @Environment(\.scenePhase) private var scenePhase
     @State private var selection: AppTab = .home
     @State private var isAddSheetPresented = false
 
@@ -58,6 +59,13 @@ struct MainTabView: View {
         .sheet(isPresented: $isAddSheetPresented) {
             AddTransactionSheet(store: store)
                 .presentationDetents([.large])
+        }
+        // Payments logged from the quick-log card while the app was in the background.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { Task { await store.syncQuickLog() } }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .quickLogDidChange)) { _ in
+            store.reloadQuickLogInbox()
         }
     }
 }

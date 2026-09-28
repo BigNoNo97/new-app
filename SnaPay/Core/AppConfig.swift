@@ -21,6 +21,8 @@ enum AppConfig {
     /// UI tests run the app against in-memory services.
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
     static let forcesDarkMode = ProcessInfo.processInfo.arguments.contains("-uiTestingDark")
+    /// UI tests: start with an Apple Pay payment waiting for a category.
+    static let seedsQuickLogCapture = ProcessInfo.processInfo.arguments.contains("-uiTestingQuickLog")
 
     /// Shared with the widget and the quick-log intent.
     static let appGroup = "group.com.bignono97.snapay"

@@ -13,12 +13,36 @@ struct ProfileView: View {
     @Environment(AppState.self) private var app
     @Environment(TransactionStore.self) private var store
     @State private var isShowingTrips = false
+    @State private var isShowingQuickLogSetup = false
 
     var body: some View {
         VStack(spacing: 0) {
             PlaceholderScreen(title: "פרופיל", message: "כאן יופיעו הפרטים שלך, הדוחות וההגדרות.")
             // Temporary entries until the profile and settings screens.
             VStack(spacing: Spacing.s) {
+                Toggle(isOn: Binding(
+                    get: { store.profile.quickLogEnabled },
+                    set: { enabled in Task { await store.setQuickLogEnabled(enabled) } }
+                )) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("תיעוד בקליק")
+                            .font(.body.weight(.medium))
+                        Text("חלונית לבחירת קטגוריה אחרי תשלום ב-Apple Pay")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .toggleStyle(.rounded)
+                .padding(Spacing.m)
+                .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
+                .accessibilityIdentifier("profile.quickLog")
+                Button {
+                    isShowingQuickLogSetup = true
+                } label: {
+                    Label("הגדרת האוטומציה", systemImage: "wave.3.right")
+                }
+                .buttonStyle(.glassSecondary)
+                .accessibilityIdentifier("profile.quickLogSetup")
                 Button {
                     isShowingTrips = true
                 } label: {
@@ -36,6 +60,9 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $isShowingTrips) {
             TripsView(store: store)
+        }
+        .sheet(isPresented: $isShowingQuickLogSetup) {
+            QuickLogSetupView(store: store)
         }
     }
 }

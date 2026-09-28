@@ -49,6 +49,12 @@ enum DevicePreferences {
         set { defaults.set(newValue.flatMap { try? JSONEncoder().encode($0) }, forKey: "cachedProfile") }
     }
 
+    /// The user closed the home screen's "set up quick-log" card.
+    static var hidesQuickLogSetupCard: Bool {
+        get { defaults.bool(forKey: "hidesQuickLogSetupCard") }
+        set { defaults.set(newValue, forKey: "hidesQuickLogSetupCard") }
+    }
+
     static var isFaceIDEnabled: Bool {
         get { defaults.bool(forKey: "isFaceIDEnabled") }
         set { defaults.set(newValue, forKey: "isFaceIDEnabled") }

@@ -8,6 +8,7 @@ final class InMemoryServices: AuthServicing, AccountRepository, DataRepository {
     private var categories: [CategoryItem] = []
     private var transactions: [UUID: TransactionRow] = [:]
     private var rules: [UUID: RecurringRuleRow] = [:]
+    private var merchantMap: [MerchantCategoryRow] = []
     private var passwords: [String: (UUID, String)] = [:]
     private(set) var savedCategories: [CategoryRow] = []
     private var currentUser: UUID?
@@ -120,6 +121,24 @@ final class InMemoryServices: AuthServicing, AccountRepository, DataRepository {
                     "RUB": Decimal(string: "0.045")!, "THB": Decimal(string: "0.11")!],
             date: .now
         )
+    }
+
+    func fetchMerchantMap(householdID: UUID) async throws -> [MerchantCategoryRow] {
+        merchantMap.filter { $0.householdID == householdID }
+    }
+
+    func recordMerchantCategory(householdID: UUID, merchant: String, categoryID: UUID) async throws {
+        let key = CategorySuggester.normalize(merchant)
+        guard !key.isEmpty else { return }
+        if let index = merchantMap.firstIndex(where: { $0.householdID == householdID && $0.merchantKey == key && $0.categoryID == categoryID }) {
+            merchantMap[index].timesUsed += 1
+        } else {
+            merchantMap.append(MerchantCategoryRow(householdID: householdID, merchantKey: key, categoryID: categoryID, timesUsed: 1))
+        }
+    }
+
+    func updateQuickLogEnabled(userID: UUID, enabled: Bool) async throws {
+        profiles[userID]?.quickLogEnabled = enabled
     }
 
     /// Returning test users (who skip onboarding) get the default categories and a few

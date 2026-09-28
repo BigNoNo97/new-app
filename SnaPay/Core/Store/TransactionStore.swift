@@ -6,6 +6,9 @@ import SnaPayCore
 nonisolated enum PendingChange: Codable, Sendable, Equatable {
     case save(TransactionRow)
     case delete(UUID)
+    /// A quick-log payment: skipped by the server if the same payment was already uploaded
+    /// (by the intent, or by the automation firing twice).
+    case insertCaptured(TransactionRow)
 }
 
 /// What's kept on disk so the app opens instantly and works offline.
@@ -15,6 +18,7 @@ nonisolated struct StoreSnapshot: Codable, Sendable {
     var transactions: [TransactionRow]
     var rates: ExchangeRates?
     var outbox: [PendingChange]
+    var merchantMap: [MerchantCategoryRow]?
     var savedAt: Date
 }
 
@@ -41,12 +45,20 @@ final class TransactionStore {
     private(set) var profile: Profile
     /// Set when the last sync failed for a reason other than being offline.
     var syncProblem: StoreError?
+    /// Apple Pay payments captured by the automation, waiting for a category. Newest first.
+    private(set) var pendingCaptures: [CapturedPayment] = []
+    /// When the automation delivered its first payment; `nil` until quick-log is set up.
+    private(set) var quickLogFirstCaptureAt: Date?
+    /// What the quick-log intent works with; rebuilt on every save.
+    private(set) var quickLogContext: QuickLogContext?
 
     let userID: UUID
     let householdID: UUID
 
     private let repository: DataRepository
     private var outbox: [PendingChange] = []
+    private var merchantMap: [MerchantCategoryRow] = []
+    private var isFlushing = false
     private var oldestLoaded: Date
     private let calendar: Calendar
 
@@ -113,6 +125,7 @@ final class TransactionStore {
     /// Shows the saved snapshot immediately, then syncs with the server.
     func start() async {
         loadSnapshot()
+        saveSnapshot()
         await refresh()
         await generateRecurring()
     }
@@ -121,6 +134,7 @@ final class TransactionStore {
         guard !isRefreshing else { return }
         isRefreshing = true
         defer { isRefreshing = false }
+        await drainQuickLog()
         await flushOutbox()
         do {
             categories = try await repository.fetchCategories(householdID: householdID)
@@ -130,6 +144,7 @@ final class TransactionStore {
             if rates == nil || !calendar.isDateInToday(rates!.date) {
                 rates = (try? await repository.fetchExchangeRates()) ?? rates
             }
+            merchantMap = (try? await repository.fetchMerchantMap(householdID: householdID)) ?? merchantMap
             if syncProblem == .offline { syncProblem = nil }
         } catch {
             syncProblem = Self.isOffline(error) ? .offline : .rejected
@@ -279,14 +294,102 @@ final class TransactionStore {
         saveSnapshot()
     }
 
+    // MARK: Quick-log
+
+    /// Picks up what the quick-log intent left in the shared inbox. Called on launch, on every
+    /// refresh and when the app comes back to the foreground.
+    func syncQuickLog() async {
+        await drainQuickLog()
+        await flushOutbox()
+    }
+
+    /// Re-reads the inbox after an intent captured or categorized a payment while the app runs.
+    /// Turning payments into transactions waits for the next sync, so the card the intent is
+    /// showing still finds its payment.
+    func reloadQuickLogInbox() {
+        let inbox = QuickLogStorage.loadInbox()
+        pendingCaptures = inbox.uncategorized
+        quickLogFirstCaptureAt = inbox.firstCaptureAt
+    }
+
+    /// Files a captured payment from the home screen's "waiting for a category" card.
+    func categorizeCapture(_ payment: CapturedPayment, as categoryID: UUID) async {
+        QuickLogStorage.updateInbox { $0.categorize(payment.id, as: categoryID) }
+        await syncQuickLog()
+        try? await repository.recordMerchantCategory(householdID: householdID, merchant: payment.merchant, categoryID: categoryID)
+    }
+
+    /// Drops a captured payment the user doesn't want logged.
+    func discardCapture(_ payment: CapturedPayment) {
+        QuickLogStorage.updateInbox { $0.remove([payment.id]) }
+        pendingCaptures.removeAll { $0.id == payment.id }
+    }
+
+    func quickLogSuggestions(for payment: CapturedPayment) -> [CategoryItem] {
+        quickLogContext?.suggestions(for: payment, calendar: calendar) ?? Array(categories(for: .expense).prefix(6))
+    }
+
+    func setQuickLogEnabled(_ enabled: Bool) async {
+        profile.quickLogEnabled = enabled
+        DevicePreferences.cachedProfile = profile
+        saveSnapshot()
+        do {
+            try await repository.updateQuickLogEnabled(userID: userID, enabled: enabled)
+        } catch {
+            syncProblem = Self.isOffline(error) ? .offline : .rejected
+        }
+    }
+
+    /// Turns categorized payments into transactions (queued for upload) and refreshes the list
+    /// of payments still waiting for a category.
+    private func drainQuickLog() async {
+        let inbox = QuickLogStorage.loadInbox()
+        var drained = Set<UUID>()
+        for payment in inbox.categorized {
+            if payment.currency != mainCurrency, rates == nil {
+                _ = try? await ensureRates()
+            }
+            // Without a rate a foreign payment waits in the inbox for the next sync.
+            guard let row = try? makeQuickLogContext().makeRow(for: payment) else { continue }
+            upsertLocally(row)
+            outbox.append(.insertCaptured(row))
+            drained.insert(payment.id)
+        }
+        if !drained.isEmpty {
+            QuickLogStorage.updateInbox { $0.remove(drained) }
+        }
+        let current = QuickLogStorage.loadInbox()
+        pendingCaptures = current.uncategorized
+        quickLogFirstCaptureAt = current.firstCaptureAt
+        saveSnapshot()
+    }
+
+    private func makeQuickLogContext() -> QuickLogContext {
+        QuickLogContext(
+            userID: userID,
+            householdID: householdID,
+            mainCurrency: mainCurrency,
+            cardFeePercent: profile.cardFxFeePercent,
+            isEnabled: profile.quickLogEnabled,
+            categories: categories,
+            rates: rates,
+            suggester: CategorySuggester.build(transactions: transactions, merchantMap: merchantMap)
+        )
+    }
+
     // MARK: Sync
 
     private func flushOutbox() async {
+        // Two overlapping flushes would send the same change twice and drop the next one.
+        guard !isFlushing else { return }
+        isFlushing = true
+        defer { isFlushing = false }
         sync: while let change = outbox.first {
             do {
                 switch change {
                 case .save(let row): try await repository.saveTransactions([row])
                 case .delete(let id): try await repository.deleteTransaction(id: id)
+                case .insertCaptured(let row): try await repository.insertIgnoringDuplicates([row])
                 }
                 outbox.removeFirst()
             } catch let error where Self.isOffline(error) {
@@ -310,7 +413,7 @@ final class TransactionStore {
         var byID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         for change in outbox {
             switch change {
-            case .save(let row): byID[row.id] = row
+            case .save(let row), .insertCaptured(let row): byID[row.id] = row
             case .delete(let id): byID[id] = nil
             }
         }
@@ -342,19 +445,27 @@ final class TransactionStore {
         transactions = TransactionSummary.sortedNewestFirst(snapshot.transactions)
         rates = snapshot.rates
         outbox = snapshot.outbox
+        merchantMap = snapshot.merchantMap ?? []
     }
 
     private func saveSnapshot() {
         let snapshot = StoreSnapshot(
             categories: categories, members: members, transactions: transactions,
-            rates: rates, outbox: outbox, savedAt: .now
+            rates: rates, outbox: outbox, merchantMap: merchantMap, savedAt: .now
         )
-        guard let data = try? JSONEncoder().encode(snapshot) else { return }
-        try? data.write(to: snapshotURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        if let data = try? JSONEncoder().encode(snapshot) {
+            try? data.write(to: snapshotURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        }
+        let context = makeQuickLogContext()
+        if context != quickLogContext {
+            quickLogContext = context
+            QuickLogStorage.saveContext(context)
+        }
     }
 
     /// Removes this user's saved data from the device (sign-out).
     func eraseLocalData() {
         try? FileManager.default.removeItem(at: snapshotURL)
+        QuickLogStorage.erase()
     }
 }

@@ -43,17 +43,30 @@ final class AppState {
     /// The services the app runs with: Supabase, or in-memory for UI tests.
     static func live() -> AppState {
         if AppConfig.isUITesting {
+            prepareQuickLogForUITests()
             let services = InMemoryServices()
             return AppState(auth: services, account: services, data: services)
         }
-        guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
+        guard let services = SupabaseServices.shared else {
             let services = InMemoryServices()
             let state = AppState(auth: services, account: services, data: services)
             state.route = .serverNotConfigured
             return state
         }
-        let services = SupabaseServices(url: url, anonKey: key)
         return AppState(auth: services, account: services, data: services)
+    }
+
+    /// Every UI test starts from a clean quick-log state (the shared files outlive the app).
+    private static func prepareQuickLogForUITests() {
+        QuickLogStorage.erase()
+        DevicePreferences.hidesQuickLogSetupCard = false
+        guard AppConfig.seedsQuickLogCapture else { return }
+        QuickLogStorage.updateInbox {
+            $0.add(CapturedPayment(
+                amount: Decimal(string: "23.9")!, currency: "ILS", merchant: "קפה לנדוור",
+                card: "Visa", capturedAt: .now.addingTimeInterval(-600)
+            ))
+        }
     }
 
     // MARK: Launch
