@@ -13,7 +13,10 @@ final class QuickLogUITests: XCTestCase {
         XCTAssertFalse(app.descendants(matching: .any)["quicklog.setupCard"].firstMatch.exists, "setup card hides once a payment arrived")
         screenshot(app, "home-pending-light")
 
+        tap(app.buttons["pending.choose"], in: app)
         let firstCategory = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "pending.category.")).firstMatch
+        XCTAssertTrue(firstCategory.waitForExistence(timeout: 5))
+        screenshot(app, "pending-categories-light")
         tap(firstCategory, in: app)
 
         XCTAssertTrue(app.buttons["transaction.קפה לנדוור"].waitForExistence(timeout: 10), "filed payment becomes a transaction")
@@ -25,8 +28,8 @@ final class QuickLogUITests: XCTestCase {
         continueAfterFailure = false
         let app = launchSignedIn(seedPayment: true)
 
-        tap(app.buttons["pending.more"], in: app)
-        tap(app.buttons["לא לתעד את התשלום"], in: app)
+        tap(app.buttons["pending.choose"], in: app)
+        tap(app.buttons["pending.discard"], in: app)
 
         XCTAssertTrue(waitForDisappearance(app.descendants(matching: .any)["pending.card"].firstMatch))
         XCTAssertFalse(app.buttons["transaction.קפה לנדוור"].exists)
@@ -39,9 +42,11 @@ final class QuickLogUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["quicklog.setupCard"].firstMatch.waitForExistence(timeout: 10), "Home invites to set up quick-log")
         tap(app.buttons["quicklog.setupCard.open"], in: app)
-        XCTAssertTrue(app.descendants(matching: .any)["quicklog.status.waiting"].firstMatch.waitForExistence(timeout: 5), "waits for the first payment")
-        XCTAssertTrue(app.buttons["quicklog.openShortcuts"].exists)
+        XCTAssertTrue(app.buttons["quicklog.openShortcuts"].waitForExistence(timeout: 5), "guide opens on the steps")
         screenshot(app, "quicklog-setup-light")
+        tap(app.buttons["quicklog.alreadySet"], in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["quicklog.status.waiting"].firstMatch.waitForExistence(timeout: 5), "waits for the first payment")
+        screenshot(app, "quicklog-setupwait-light")
         app.buttons["סגירה"].firstMatch.tap()
 
         tap(app.buttons["tab.profile"], in: app)

@@ -93,6 +93,10 @@ struct QuickLogInboxTests {
         #expect(inbox.categorized.map(\.id) == [older.id])
         #expect(inbox.uncategorized.map(\.id) == [newer.id])
 
+        inbox.clearCategory(older.id)
+        #expect(inbox.categorized.isEmpty)
+        inbox.categorize(older.id, as: category)
+
         inbox.remove([older.id])
         #expect(inbox.payments.map(\.id) == [newer.id])
         #expect(inbox.firstCaptureAt == now)

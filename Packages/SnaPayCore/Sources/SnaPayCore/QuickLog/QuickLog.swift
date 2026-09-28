@@ -121,6 +121,12 @@ public struct QuickLogInbox: Codable, Equatable, Sendable {
         payments[index].categoryID = categoryID
     }
 
+    /// Undo on the quick-log card: the payment waits for a category again.
+    public mutating func clearCategory(_ id: UUID) {
+        guard let index = payments.firstIndex(where: { $0.id == id }) else { return }
+        payments[index].categoryID = nil
+    }
+
     public mutating func remove(_ ids: Set<UUID>) {
         payments.removeAll { ids.contains($0.id) }
     }

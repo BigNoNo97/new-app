@@ -85,93 +85,193 @@ nonisolated struct ChooseCategoryIntent: AppIntent {
     }
 }
 
-/// The card itself. Plain rounded rectangles (no glass: the system draws the snippet's
-/// background), right to left like the rest of the app.
+/// "ביטול" on the saved card.
+nonisolated struct UndoCategoryIntent: AppIntent {
+    static let title: LocalizedStringResource = "ביטול סיווג"
+    static let isDiscoverable = false
+    static let openAppWhenRun = false
+
+    @Parameter(title: "תשלום")
+    var paymentID: String
+
+    init() {}
+
+    init(paymentID: UUID) {
+        self.paymentID = paymentID.uuidString
+    }
+
+    func perform() async throws -> some IntentResult {
+        if let payment = UUID(uuidString: paymentID) {
+            await QuickLogService.undo(paymentID: payment)
+        }
+        return .result()
+    }
+}
+
+/// "עוד…" on the card: opens SnaPay, where the payment waits on Home with every category.
+nonisolated struct OpenSnaPayIntent: AppIntent {
+    static let title: LocalizedStringResource = "פתיחת SnaPay"
+    static let isDiscoverable = false
+    static let openAppWhenRun = true
+
+    func perform() async throws -> some IntentResult {
+        .result()
+    }
+}
+
+/// The card itself (design: `quicklog`, `quicklogfx`, `quicklogsaved`): a black card with the
+/// card used, merchant and amount, four suggested categories (the likeliest highlighted) and
+/// "עוד…"; after a tap it collapses to a "saved" line with undo. Always dark, right to left.
 nonisolated struct QuickLogCardView: View {
     let model: QuickLogCardModel
 
     @MainActor var body: some View {
         Group {
             switch model.state {
-            case let .payment(id, merchant, amount, conversion, choices, chosen):
-                payment(id: id, merchant: merchant, amount: amount, conversion: conversion, choices: choices, chosen: chosen)
-            case let .message(title, detail):
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(title)
-                        .font(.headline)
-                    Text(detail)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            case let .payment(payment):
+                if let chosen = payment.chosen {
+                    saved(payment, chosen: chosen)
+                } else {
+                    choosing(payment)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            case let .message(title, detail):
+                HStack(alignment: .top, spacing: Spacing.sm) {
+                    BrandTile(size: 36)
+                    VStack(alignment: .leading, spacing: Spacing.xs) {
+                        Text(title)
+                            .font(.headline)
+                        Text(detail)
+                            .font(.subheadline)
+                            .foregroundStyle(.white.opacity(0.65))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .foregroundStyle(.white)
+                .padding(Spacing.m)
             }
         }
-        .padding(Spacing.m)
+        .background(.black, in: .rect(cornerRadius: 38))
+        .environment(\.colorScheme, .dark)
         .environment(\.layoutDirection, .rightToLeft)
         .environment(\.locale, Locale(identifier: "he_IL"))
     }
 
-    @MainActor private func payment(
-        id: UUID, merchant: String, amount: String, conversion: String?,
-        choices: [QuickLogCardModel.Choice], chosen: QuickLogCardModel.Choice?
-    ) -> some View {
+    @MainActor private func choosing(_ payment: QuickLogCardModel.Payment) -> some View {
         VStack(alignment: .leading, spacing: Spacing.m) {
+            HStack(spacing: Spacing.s) {
+                Text(String(payment.card.prefix(1)).uppercased())
+                    .font(.headline)
+                    .foregroundStyle(Color(uiColor: UIColor(hex: 0x5B8DEF)))
+                    .frame(width: 36, height: 36)
+                    .background(Color(uiColor: UIColor(hex: 0x5B8DEF)).opacity(0.22), in: .rect(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Apple Pay")
+                    Text(payment.card)
+                }
+                .font(.footnote)
+                .foregroundStyle(.white.opacity(0.6))
+                .lineLimit(1)
+                Spacer()
+                BrandTile(size: 32)
+            }
+
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(merchant)
-                        .font(.headline)
+                    Text(payment.merchant)
+                        .font(.title3.weight(.bold))
                         .lineLimit(1)
-                    if let chosen {
-                        Label("נשמר ב\(chosen.name)", systemImage: "checkmark.circle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.brand)
-                    } else {
-                        Text("באיזו קטגוריה?")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                    if let conversion = payment.conversion {
+                        Label(conversion, systemImage: "globe")
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.65))
                     }
                 }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(amount)
-                        .font(.title3.weight(.semibold))
-                    if let conversion {
-                        Text(conversion)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Spacer(minLength: Spacing.s)
+                AmountText(text: payment.amount, font: .system(size: 36, weight: .bold), color: .white)
+                    .layoutPriority(1)
             }
 
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 3), spacing: Spacing.s) {
-                ForEach(choices) { choice in
-                    let isChosen = choice.id == chosen?.id
-                    Button(intent: ChooseCategoryIntent(paymentID: id, categoryID: choice.id)) {
-                        VStack(spacing: 4) {
-                            Text(choice.emoji)
-                                .font(.title2)
-                            Text(choice.name)
-                                .font(.caption.weight(.medium))
-                                .lineLimit(1)
-                                .foregroundStyle(.primary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 64)
-                        .background(Color(hex: choice.color).opacity(isChosen ? 0.32 : 0.14), in: .rect(cornerRadius: Radius.control))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: Radius.control)
-                                .strokeBorder(isChosen ? Theme.brand : .clear, lineWidth: 2)
-                        }
+            Text("לאיזו קטגוריה?")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white.opacity(0.6))
+
+            HStack(spacing: Spacing.s) {
+                ForEach(Array(payment.choices.enumerated()), id: \.element.id) { index, choice in
+                    Button(intent: ChooseCategoryIntent(paymentID: payment.id, categoryID: choice.id)) {
+                        tile(emoji: choice.emoji, name: choice.name, color: Color(hex: choice.color), isLikeliest: index == 0)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityAddTraits(isChosen ? .isSelected : [])
                 }
-            }
-
-            if chosen == nil {
-                Text("לא כאן? אפשר לבחור אחר כך במסך הבית של SnaPay.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Button(intent: OpenSnaPayIntent()) {
+                    VStack(spacing: 6) {
+                        Image(systemName: "ellipsis")
+                            .font(.headline)
+                            .frame(height: 40)
+                        Text("עוד…")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(.white.opacity(0.7))
+                    .frame(maxWidth: .infinity, minHeight: 96)
+                    .background(.white.opacity(0.06), in: .rect(cornerRadius: 20))
+                    .overlay(RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.1), lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
         }
+        .foregroundStyle(.white)
+        .padding(Spacing.m)
+    }
+
+    @MainActor private func tile(emoji: String, name: String, color: Color, isLikeliest: Bool) -> some View {
+        VStack(spacing: 6) {
+            Text(emoji)
+                .font(.title2)
+                .frame(width: 44, height: 44)
+                .background(color.opacity(0.28), in: .rect(cornerRadius: 12))
+            Text(name)
+                .font(.caption.weight(.semibold))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.8)
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, minHeight: 96)
+        .padding(.horizontal, 2)
+        .background(isLikeliest ? Theme.brand.opacity(0.14) : .white.opacity(0.06), in: .rect(cornerRadius: 20))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .strokeBorder(isLikeliest ? Theme.brand : .white.opacity(0.1), lineWidth: isLikeliest ? 2 : 1)
+        }
+    }
+
+    @MainActor private func saved(_ payment: QuickLogCardModel.Payment, chosen: QuickLogCardModel.Choice) -> some View {
+        HStack(spacing: Spacing.sm) {
+            Image(systemName: "checkmark")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(Color(uiColor: UIColor(hex: 0x04210F)))
+                .frame(width: 36, height: 36)
+                .background(Theme.brand, in: .rect(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("נשמר ב\(chosen.name)")
+                    .font(.subheadline.weight(.bold))
+                Text("\(payment.merchant) · \(payment.mainAmount)")
+                    .font(.footnote)
+                    .foregroundStyle(.white.opacity(0.6))
+            }
+            .lineLimit(1)
+            Spacer(minLength: Spacing.s)
+            Button(intent: UndoCategoryIntent(paymentID: payment.id)) {
+                Text("ביטול")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, Spacing.m)
+                    .frame(height: 36)
+                    .background(.white.opacity(0.14), in: .rect(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, Spacing.sm)
+        .padding(.vertical, 10)
     }
 }

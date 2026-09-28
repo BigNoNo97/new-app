@@ -10,8 +10,21 @@ nonisolated struct QuickLogCardModel: Sendable {
         let color: String
     }
 
+    nonisolated struct Payment: Sendable {
+        let id: UUID
+        let merchant: String
+        let amount: String
+        /// "₪48.90" for the saved line.
+        let mainAmount: String
+        let card: String
+        /// "≈ ₪86.40 כולל עמלה" for foreign payments.
+        let conversion: String?
+        let choices: [Choice]
+        let chosen: Choice?
+    }
+
     nonisolated enum State: Sendable {
-        case payment(id: UUID, merchant: String, amount: String, conversion: String?, choices: [Choice], chosen: Choice?)
+        case payment(Payment)
         case message(title: String, detail: String)
     }
 
@@ -74,6 +87,20 @@ enum QuickLogService {
         try? await repository.recordMerchantCategory(householdID: context.householdID, merchant: payment.merchant, categoryID: categoryID)
     }
 
+    /// "ביטול" on the saved card: the payment waits for a category again, and a row already
+    /// uploaded is removed.
+    static func undo(paymentID: UUID) async {
+        let wasInInbox = QuickLogStorage.loadInbox().payment(paymentID) != nil
+        QuickLogStorage.updateInbox { $0.clearCategory(paymentID) }
+        NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
+        guard let repository else { return }
+        try? await repository.deleteTransaction(id: paymentID)
+        if !wasInInbox {
+            // The app already turned it into a transaction; it syncs the deletion on refresh.
+            NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
+        }
+    }
+
     static func card(for key: String) -> QuickLogCardModel {
         switch key {
         case Key.signedOut:
@@ -90,19 +117,24 @@ enum QuickLogService {
               let payment = QuickLogStorage.loadInbox().payment(id) else {
             return .init(state: .message(title: "התשלום כבר נשמר", detail: "אפשר לראות ולערוך אותו ב-SnaPay."))
         }
-        let choices = context.suggestions(for: payment).map(choice)
+        let choices = context.suggestions(for: payment, count: 4).map(choice)
         let chosen = payment.categoryID.flatMap { id in context.categories.first { $0.id == id } }.map(choice)
-        let conversion = context.conversion(for: payment).map {
+        let conversionValue = context.conversion(for: payment)
+        let conversion = conversionValue.map {
             "≈ " + Money.string($0.totalAmount, currency: context.mainCurrency, alwaysShowCents: true)
+                + ($0.feeAmount > 0 ? " כולל עמלה" : "")
         }
-        return .init(state: .payment(
+        let amount = Money.string(payment.amount, currency: payment.currency, alwaysShowCents: true)
+        return .init(state: .payment(.init(
             id: payment.id,
             merchant: payment.merchant.isEmpty ? "תשלום ב-Apple Pay" : payment.merchant,
-            amount: Money.string(payment.amount, currency: payment.currency, alwaysShowCents: true),
+            amount: amount,
+            mainAmount: conversionValue.map { Money.string($0.totalAmount, currency: context.mainCurrency, alwaysShowCents: true) } ?? amount,
+            card: payment.card ?? "Apple Pay",
             conversion: conversion,
             choices: choices,
             chosen: chosen
-        ))
+        )))
     }
 
     private static func choice(_ category: CategoryItem) -> QuickLogCardModel.Choice {

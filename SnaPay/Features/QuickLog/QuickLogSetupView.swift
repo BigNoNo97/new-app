@@ -1,133 +1,281 @@
 import SwiftUI
 import SnaPayCore
 
-/// Walks the user through the one-time Shortcuts automation that powers quick-log, then waits
-/// for the first payment to arrive.
+/// Walks the user through the one-time Shortcuts automation that powers quick-log (design:
+/// `setup`), then waits for the first payment to arrive (`setupwait`).
 struct QuickLogSetupView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
     let store: TransactionStore
 
-    private let steps: [(symbol: String, text: LocalizedStringKey)] = [
-        ("square.stack.3d.up.fill", "פותחים את אפליקציית **קיצורים** ועוברים ללשונית **אוטומציה**."),
-        ("plus.rectangle.fill", "לוחצים על **+** ובוחרים **עסקה** (Transaction)."),
-        ("creditcard.fill", "מסמנים את הכרטיסים שמשלמים איתם ב-Apple Pay, ובוחרים **הפעלה מיידית**."),
-        ("wand.and.stars", "בוחרים **אוטומציה ריקה חדשה**, מחפשים **SnaPay** ומוסיפים את הפעולה **תיעוד תשלום**."),
-        ("arrow.left.arrow.right", "בשדות הפעולה בוחרים את המשתנים של העסקה: **סכום**, **סוחר** ו**כרטיס**. זהו, אפשר לשמור."),
-    ]
+    private enum Phase { case guide, waiting }
+    @State private var phase: Phase
+
+    init(store: TransactionStore) {
+        self.store = store
+        _phase = State(initialValue: store.quickLogFirstCaptureAt == nil ? .guide : .waiting)
+    }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Spacing.l) {
-                    VStack(alignment: .leading, spacing: Spacing.s) {
-                        Text("תיעוד בקליק")
-                            .font(.largeTitle.weight(.bold))
-                        Text("אחרי כל תשלום ב-Apple Pay קופצת חלונית קטנה, ובלחיצה אחת ההוצאה נשמרת בקטגוריה הנכונה. מגדירים את זה פעם אחת, בדקה.")
-                            .font(.body)
-                            .foregroundStyle(.secondary)
-                    }
+        VStack(spacing: 0) {
+            topBar
+                .padding(.horizontal, Spacing.gutter)
+                .padding(.top, Spacing.l)
 
-                    statusCard
+            Group {
+                switch phase {
+                case .guide: guide
+                case .waiting: waiting
+                }
+            }
+            .transition(.opacity)
+        }
+        .background { AppBackground() }
+        .animation(.easeInOut(duration: 0.25), value: phase)
+        .task { store.reloadQuickLogInbox() }
+    }
 
-                    VStack(spacing: Spacing.s) {
-                        ForEach(steps, id: \.symbol) { step in
-                            GlassCard {
-                                HStack(alignment: .top, spacing: Spacing.m) {
-                                    Image(systemName: step.symbol)
-                                        .font(.body.weight(.semibold))
-                                        .foregroundStyle(Theme.brand)
-                                        .frame(width: 40, height: 40)
-                                        .background(Theme.brand.opacity(0.14), in: .rect(cornerRadius: 12))
-                                    Text(step.text)
-                                        .font(.subheadline)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                }
+    /// Close button, progress line (no step numbers) and "skip for now".
+    private var topBar: some View {
+        HStack(spacing: Spacing.m) {
+            IconButton(symbol: "xmark", label: "סגירה") { dismiss() }
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 3).fill(Theme.track)
+                    RoundedRectangle(cornerRadius: 3).fill(Theme.brand)
+                        .frame(width: proxy.size.width * (phase == .guide ? 0.5 : 1))
+                }
+            }
+            .frame(height: 6)
+            .accessibilityHidden(true)
+            Button("דלג בינתיים") { dismiss() }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.brandInk)
+        }
+    }
+
+    // MARK: Guide
+
+    private var guide: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                VStack(alignment: .leading, spacing: Spacing.s) {
+                    Text("הגדרת תיעוד בקליק")
+                        .font(Typography.largeTitle)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("אוטומציה אחת בקיצורים, ומעכשיו כל תשלום ב-Apple Pay מגיע ישר ל-SnaPay.")
+                        .font(.body)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+
+                if !store.profile.quickLogEnabled {
+                    Label("התיעוד בקליק כבוי כרגע. אפשר להפעיל אותו בפרופיל.", systemImage: "pause.circle")
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(Theme.warning)
+                        .padding(Spacing.sm)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Theme.warningTint, in: .rect(cornerRadius: Radius.chip))
+                }
+
+                VStack(spacing: Spacing.cardGap) {
+                    SetupStep(isLast: false, text: "באפליקציית **קיצורים**, עברו ל**אוטומציה**, לחצו על פלוס ובחרו **עסקה**.") {
+                        HStack(spacing: Spacing.sm) {
+                            Image(systemName: "creditcard")
+                                .font(.system(size: 17, weight: .medium))
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color(uiColor: UIColor(hex: 0x3B82F6)), in: .rect(cornerRadius: 10))
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text("עסקה").font(.subheadline.weight(.bold))
+                                Text("כשאני מקיש על כרטיס ב-Wallet").font(.caption).foregroundStyle(Theme.textSecondary)
                             }
+                            Spacer()
+                            Image(systemName: "chevron.backward").font(.caption.weight(.semibold)).foregroundStyle(Theme.textTertiary)
                         }
                     }
-
-                    Text("החלונית מופיעה רק כשמשלמים בכרטיסים שבחרתם. אם היא לא הופיעה, אפשר לסווג את התשלום אחר כך במסך הבית.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    SetupStep(isLast: false, text: "סמנו את הכרטיסים שלכם ב-Wallet ובחרו **הפעלה מיידית**, כדי שלא תצטרכו לאשר כל פעם.") {
+                        HStack {
+                            Text("הפעלה מיידית").font(.subheadline)
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 11)
+                                .fill(Theme.buttonPrimary)
+                                .frame(width: 52, height: 32)
+                                .overlay(alignment: .trailing) {
+                                    RoundedRectangle(cornerRadius: 9).fill(.white).frame(width: 26, height: 26).padding(3)
+                                }
+                        }
+                    }
+                    SetupStep(isLast: true, text: "הוסיפו את הפעולה **תיעוד תשלום** של SnaPay. הסכום ושם בית העסק יעברו אליה לבד.") {
+                        HStack(spacing: Spacing.s) {
+                            Image(systemName: "doc.text")
+                            Text("תיעוד תשלום").font(.subheadline.weight(.bold))
+                            Spacer()
+                            Text("סכום · בית עסק").font(.caption)
+                        }
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, Spacing.sm)
+                        .frame(height: 40)
+                        .background(
+                            LinearGradient(colors: [Theme.buttonPrimary, Theme.brand], startPoint: .leading, endPoint: .trailing),
+                            in: .rect(cornerRadius: 12)
+                        )
+                    }
                 }
-                .padding(Spacing.m)
+
+                Text("החלונית מופיעה רק כשמשלמים בכרטיסים שבחרתם. תשלום שלא סווג מחכה במסך הבית.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textTertiary)
             }
-            .safeAreaInset(edge: .bottom) {
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.vertical, Spacing.l)
+        }
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: Spacing.s) {
                 Button {
                     openURL(URL(string: "shortcuts://")!)
                 } label: {
-                    Label("פתיחת קיצורים", systemImage: "arrow.up.forward.app")
+                    Label("פתח את קיצורים", systemImage: "square.2.layers.3d")
                 }
                 .buttonStyle(.primary)
-                .padding(.horizontal, Spacing.m)
-                .padding(.bottom, Spacing.s)
                 .accessibilityIdentifier("quicklog.openShortcuts")
+                Button("כבר הגדרתי") { phase = .waiting }
+                    .buttonStyle(.text)
+                    .accessibilityIdentifier("quicklog.alreadySet")
             }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("סגירה") { dismiss() }
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.s)
+        }
+    }
+
+    // MARK: Waiting
+
+    private var waiting: some View {
+        VStack(spacing: Spacing.l) {
+            Spacer()
+            illustration
+            VStack(spacing: Spacing.s) {
+                Text(store.quickLogFirstCaptureAt == nil ? "ההגדרה הסתיימה" : "מעולה, זה עובד!")
+                    .font(Typography.title1)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(store.quickLogFirstCaptureAt == nil
+                     ? "מחכה לקליטה הראשונה מהפעולה האוטומטית. אחרי התשלום הבא נדע שהכול מחובר."
+                     : "התשלום הראשון נקלט. מעכשיו כל תשלום ב-Apple Pay מגיע ל-SnaPay.")
+                    .font(.body)
+                    .foregroundStyle(Theme.textSecondary)
+                    .multilineTextAlignment(.center)
+            }
+            statusChip
+            Spacer()
+            VStack(spacing: Spacing.s) {
+                Button("סיימתי") { dismiss() }
+                    .buttonStyle(.primary)
+                    .accessibilityIdentifier("quicklog.done")
+                if store.quickLogFirstCaptureAt == nil {
+                    Button("חזרה להוראות") { phase = .guide }
+                        .buttonStyle(.text)
                 }
-                    .sharedBackgroundVisibility(.hidden)
             }
-            .task { store.reloadQuickLogInbox() }
+        }
+        .padding(.horizontal, Spacing.gutter)
+        .padding(.bottom, Spacing.s)
+    }
+
+    /// Card → phone → SnaPay, joined by dotted lines.
+    private var illustration: some View {
+        HStack(spacing: Spacing.sm) {
+            BrandTile(size: 64)
+            dots
+            Image(systemName: "wave.3.right")
+                .font(.system(size: 26, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: 74, height: 140)
+                .glassSurface(radius: 26)
+            dots
+            RoundedRectangle(cornerRadius: 12)
+                .fill(LinearGradient(colors: [Color(uiColor: UIColor(hex: 0x5B8DEF)), Color(uiColor: UIColor(hex: 0x14B8A6))],
+                                     startPoint: .topLeading, endPoint: .bottomTrailing))
+                .frame(width: 92, height: 60)
+                .overlay(alignment: .bottomTrailing) {
+                    Text("•••• 4821")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .padding(8)
+                }
+                .rotationEffect(.degrees(-6))
+        }
+        .environment(\.layoutDirection, .leftToRight)
+        .accessibilityHidden(true)
+    }
+
+    private var dots: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle().fill(Theme.brand.opacity(1 - Double(index) * 0.3)).frame(width: 6, height: 6)
+            }
         }
     }
 
     @ViewBuilder
-    private var statusCard: some View {
-        if !store.profile.quickLogEnabled {
-            status(symbol: "pause.circle.fill", color: .secondary,
-                   title: "התיעוד בקליק כבוי",
-                   detail: "אפשר להפעיל אותו בפרופיל. עד אז, החלונית לא תקפוץ אחרי תשלום.")
-        } else if let first = store.quickLogFirstCaptureAt {
-            status(symbol: "checkmark.circle.fill", color: Theme.brand,
-                   title: "מעולה, זה עובד!",
-                   detail: "התשלום הראשון נקלט ב\(first.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.wide).hour().minute())).")
+    private var statusChip: some View {
+        if let first = store.quickLogFirstCaptureAt {
+            chip(color: Theme.brand, text: "התשלום הראשון נקלט ב\(first.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.wide).hour().minute()))")
+                .accessibilityIdentifier("quicklog.status")
         } else {
-            GlassCard {
-                HStack(spacing: Spacing.m) {
-                    Group {
-                        // A spinning indicator never lets UI tests see the app idle.
-                        if AppConfig.isUITesting {
-                            Image(systemName: "hourglass")
-                                .font(.title2)
-                                .foregroundStyle(Theme.brand)
-                        } else {
-                            ProgressView()
-                        }
-                    }
-                    .frame(width: 40, height: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("מחכים לתשלום הראשון")
-                            .font(.headline)
-                        Text("אחרי ההגדרה, שלמו במשהו קטן ב-Apple Pay. כשהחלונית תקפוץ, יופיע כאן אישור.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .accessibilityIdentifier("quicklog.status.waiting")
+            chip(color: Theme.warning, text: "מחכה לתשלום הראשון")
+                .accessibilityIdentifier("quicklog.status.waiting")
         }
     }
 
-    private func status(symbol: String, color: Color, title: LocalizedStringKey, detail: String) -> some View {
-        GlassCard {
-            HStack(spacing: Spacing.m) {
-                Image(systemName: symbol)
-                    .font(.title2)
-                    .foregroundStyle(color)
-                    .frame(width: 40, height: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(.headline)
-                    Text(detail)
+    private func chip(color: Color, text: String) -> some View {
+        HStack(spacing: Spacing.s) {
+            Circle()
+                .strokeBorder(color, lineWidth: 3)
+                .frame(width: 14, height: 14)
+                .padding(4)
+                .background(color.opacity(0.18), in: .circle)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
+        }
+        .padding(.horizontal, Spacing.m)
+        .frame(minHeight: 40)
+        .glassSurface(radius: Radius.chip)
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// One step of the guide: a card with a small mock of the Shortcuts screen and the
+/// instruction, on a timeline (dot and line) at the leading edge.
+private struct SetupStep<Mock: View>: View {
+    let isLast: Bool
+    let text: LocalizedStringKey
+    @ViewBuilder var mock: Mock
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(Theme.brand)
+                    .frame(width: 12, height: 12)
+                    .padding(4)
+                    .background(Theme.brandTint, in: .circle)
+                    .padding(.top, Spacing.l)
+                if !isLast {
+                    Rectangle().fill(Theme.track).frame(width: 2)
+                }
+            }
+            GlassCard {
+                VStack(alignment: .leading, spacing: Spacing.sm) {
+                    mock
+                        .foregroundStyle(Theme.textPrimary)
+                        .padding(Spacing.sm)
+                        .background(Theme.field, in: .rect(cornerRadius: Radius.field))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.field).strokeBorder(Theme.stroke, lineWidth: 1))
+                    Text(text)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textPrimary)
                 }
             }
         }
-        .accessibilityIdentifier("quicklog.status")
     }
 }
