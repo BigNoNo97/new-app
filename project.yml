@@ -104,6 +104,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.uitests
         TEST_TARGET_NAME: SnaPay
+        # XCTestCase's initializers are nonisolated; test methods opt into @MainActor instead.
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
 schemes:
   SnaPay:

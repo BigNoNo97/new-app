@@ -3,6 +3,7 @@ import XCTest
 /// Runs the onboarding flows against in-memory services (`-uiTesting`) and keeps screenshots
 /// of every screen, in light and dark mode, as test attachments (exported by CI).
 final class OnboardingUITests: XCTestCase {
+    @MainActor
     func testSignUpThroughCategoriesToHome() {
         continueAfterFailure = false
         let app = launch()
@@ -32,6 +33,7 @@ final class OnboardingUITests: XCTestCase {
         screenshot(app, "home-light")
     }
 
+    @MainActor
     func testSignUpValidationAndSwitchToLogIn() {
         continueAfterFailure = false
         let app = launch()
@@ -56,6 +58,7 @@ final class OnboardingUITests: XCTestCase {
         screenshot(app, "log-in-light")
     }
 
+    @MainActor
     func testLogInErrorAndForgotPassword() {
         continueAfterFailure = false
         let app = launch()
@@ -76,6 +79,7 @@ final class OnboardingUITests: XCTestCase {
         screenshot(app, "forgot-password-sent-light")
     }
 
+    @MainActor
     func testReturningUserLogsInToHome() {
         continueAfterFailure = false
         let app = launch()
@@ -92,6 +96,7 @@ final class OnboardingUITests: XCTestCase {
         XCTAssertTrue(app.buttons["welcome.start"].waitForExistence(timeout: 10), "signing out returns to welcome")
     }
 
+    @MainActor
     func testDarkModeScreens() {
         continueAfterFailure = false
         let app = launch(dark: true)
@@ -119,6 +124,7 @@ final class OnboardingUITests: XCTestCase {
 
     // MARK: Helpers
 
+    @MainActor
     private func launch(dark: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-uiTesting"] + (dark ? ["-uiTestingDark"] : [])
@@ -126,18 +132,21 @@ final class OnboardingUITests: XCTestCase {
         return app
     }
 
+    @MainActor
     private func tap(_ element: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         XCTAssertTrue(element.waitForExistence(timeout: 10), "missing \(element)", file: file, line: line)
         scrollIntoView(element, in: app)
         element.tap()
     }
 
+    @MainActor
     private func type(_ text: String, into element: XCUIElement, in app: XCUIApplication, file: StaticString = #filePath, line: UInt = #line) {
         tap(element, in: app, file: file, line: line)
         element.typeText(text)
     }
 
     /// Scrolls until the element can be tapped (fields near the bottom sit under the keyboard).
+    @MainActor
     private func scrollIntoView(_ element: XCUIElement, in app: XCUIApplication) {
         var attempts = 0
         while !element.isHittable && attempts < 5 {
@@ -146,6 +155,7 @@ final class OnboardingUITests: XCTestCase {
         }
     }
 
+    @MainActor
     private func screenshot(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
