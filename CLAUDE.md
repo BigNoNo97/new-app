@@ -61,6 +61,10 @@ brew install xcodegen && xcodegen generate
 xcodebuild test -project SnaPay.xcodeproj -scheme SnaPay -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
 ```
 
+- **חיסכון בדקות Actions:** הריפו פרטי, וכל דקת macOS נספרת פי 10 מול המכסה החודשית.
+  - טסטי `SnaPayCore` רצים על לינוקס בכל שינוי.
+  - הבנייה על macOS, טסטי הממשק וצילומי המסך רצים רק ב-PR שאינו טיוטה, או בהפעלה ידנית.
+  - אופן העבודה: פותחים PR כטיוטה, בודקים מקומית ככל האפשר, ומעבירים ל-"Ready for review" רק בסוף שלב. תיקונים אחרי זה נאספים לדחיפה אחת.
 - כל שינוי במבנה הנתונים הוא מיגרציה חדשה ב-`supabase/migrations/`, עם טסט הרשאות מתאים ב-`supabase/tests/`.
 
 ### כללי עיצוב (חובה)
