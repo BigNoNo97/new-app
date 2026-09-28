@@ -21,3 +21,33 @@
   - מונחים באנגלית, שמות קבצים ופקודות — בתוך `backticks`, באמצע משפט.
   - בלי טבלאות; רשימות ותבליטים במקומן.
   - קוד ופקודות ארוכים — בבלוק קוד נפרד, לא בתוך משפט עברי.
+
+## הפרויקט: SnaPay
+
+אפליקציית iOS למעקב הוצאות והכנסות, בעברית. התוכנית המלאה נמצאת ב-`docs/PLAN.md`, וההתקדמות ב-`TASKS.md`.
+
+### מבנה
+
+- `project.yml` — הגדרת פרויקט Xcode. הקובץ `SnaPay.xcodeproj` נוצר ממנו עם XcodeGen, ולא נשמר בגיט.
+- `SnaPay/` — קוד האפליקציה, ב-SwiftUI, ל-iOS 26 ומעלה.
+- `SnaPay/DesignSystem/` — צבעים, מרווחים ורכיבי זכוכית. כל צבע באפליקציה מגיע מ-`Theme`.
+- `SnaPayWidget/` — הווידג'ט.
+- `Packages/SnaPayCore/` — לוגיקה עסקית בלי ממשק: המרת מטבע, חודש פיננסי, חיובים מחזוריים, הצעת קטגוריה וקריאת קבצי עו"ש. כל לוגיקה שאפשר לבדוק בלי ממשק נכנסת לכאן, עם טסטים.
+- `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
+- `.github/workflows/` — בדיקת קוד על כל שינוי, והעלאה ל-TestFlight על כל מיזוג ל-`main`.
+
+### בנייה ובדיקה
+
+אין Mac בסביבת הפיתוח, ובסביבת הענן אין Swift. הקמפול והטסטים רצים ב-GitHub Actions על macOS. פקודות מקבילות על Mac:
+
+```
+swift test --package-path Packages/SnaPayCore
+brew install xcodegen && xcodegen generate
+xcodebuild build -project SnaPay.xcodeproj -scheme SnaPay -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO
+```
+
+### כללי עיצוב (חובה)
+
+- בלי רקע בצבע שמנת, בלי טקסט באיטליק, בלי תוויות ממוספרות כמו "01", בלי פונט מונוספייס.
+- בלי כפתורים או פקדים בצורת גלולה: רק מלבנים עם פינות מעוגלות (`Radius.control`). הכפתור העגול היחיד הוא "+" בבר הניווט.
+- כל המסכים מימין לשמאל.
