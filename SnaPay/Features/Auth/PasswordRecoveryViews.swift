@@ -33,7 +33,7 @@ struct ForgotPasswordSheet: View {
                 .padding(.top, Spacing.l)
 
                 Button("סגירה") { dismiss() }
-                    .buttonStyle(.glass)
+                    .buttonStyle(.glassSecondary)
                     .accessibilityIdentifier("forgot.close")
             } else {
                 VStack(alignment: .leading, spacing: Spacing.xs) {
@@ -157,7 +157,7 @@ struct CheckEmailView: View {
             }
             Spacer()
             Button("חזרה למסך הכניסה") { app.backToWelcome() }
-                .buttonStyle(.glass)
+                .buttonStyle(.glassSecondary)
                 .accessibilityIdentifier("checkEmail.back")
         }
         .padding(Spacing.m)

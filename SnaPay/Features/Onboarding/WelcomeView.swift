@@ -60,7 +60,7 @@ struct WelcomeView: View {
                     .buttonStyle(.primary)
                     .accessibilityIdentifier("welcome.start")
                 Button("יש לי כבר חשבון", action: onHaveAccount)
-                    .buttonStyle(.glass)
+                    .buttonStyle(.glassSecondary)
                     .accessibilityIdentifier("welcome.logIn")
             }
         }

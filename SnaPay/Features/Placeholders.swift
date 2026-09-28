@@ -31,7 +31,7 @@ struct ProfileView: View {
             Button("התנתקות") {
                 Task { await app.signOut() }
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.glassSecondary)
             .padding(Spacing.m)
             .accessibilityIdentifier("profile.signOut")
         }
