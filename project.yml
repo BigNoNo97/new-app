@@ -1,0 +1,91 @@
+name: SnaPay
+
+options:
+  bundleIdPrefix: com.bignono97
+  developmentLanguage: he
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+    SWIFT_APPROACHABLE_CONCURRENCY: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Automatic
+    TARGETED_DEVICE_FAMILY: "1"
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+
+packages:
+  SnaPayCore:
+    path: Packages/SnaPayCore
+
+targets:
+  SnaPay:
+    type: application
+    platform: iOS
+    sources:
+      - SnaPay
+    dependencies:
+      - package: SnaPayCore
+      - target: SnaPayWidget
+    entitlements:
+      path: SnaPay/SnaPay.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.bignono97.snapay
+    info:
+      path: SnaPay/Info.plist
+      properties:
+        CFBundleDisplayName: SnaPay
+        CFBundleDevelopmentRegion: he
+        CFBundleLocalizations: [he]
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        NSFaceIDUsageDescription: "SnaPay משתמשת ב-Face ID כדי לשמור על המידע הפיננסי שלך."
+        NSCameraUsageDescription: "SnaPay משתמשת במצלמה כדי לצלם קבלות ולמלא את פרטי ההוצאה אוטומטית."
+        NSPhotoLibraryUsageDescription: "SnaPay ניגשת לתמונות כדי לצרף קבלה להוצאה."
+        UIBackgroundModes: [remote-notification]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+
+  SnaPayWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - SnaPayWidget
+    dependencies:
+      - package: SnaPayCore
+    entitlements:
+      path: SnaPayWidget/SnaPayWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.bignono97.snapay
+    info:
+      path: SnaPayWidget/Info.plist
+      properties:
+        CFBundleDisplayName: SnaPay
+        CFBundleDevelopmentRegion: he
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
+        SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
+
+schemes:
+  SnaPay:
+    build:
+      targets:
+        SnaPay: all
+    run:
+      config: Debug
+    archive:
+      config: Release
