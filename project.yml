@@ -17,6 +17,9 @@ settings:
     CODE_SIGN_STYLE: Automatic
     TARGETED_DEVICE_FAMILY: "1"
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    # Colors come from Theme (Color("name")); generated symbols like Color.fill would clash with SwiftUI.
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
+    ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
 
 packages:
   SnaPayCore:

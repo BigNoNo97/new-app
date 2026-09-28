@@ -23,14 +23,15 @@ struct GlassSegmentedControl<Value: Hashable>: View {
                     withAnimation(.snappy(duration: 0.25)) { selection = segment.value }
                 } label: {
                     Text(segment.title)
-                        .font(.subheadline.weight(isSelected ? .semibold : .regular))
-                        .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+                        .font(.subheadline.weight(isSelected ? .semibold : .medium))
+                        .foregroundStyle(isSelected ? Theme.textPrimary : Theme.textSecondary)
                         .frame(maxWidth: .infinity, minHeight: 36)
                         .background {
                             if isSelected {
                                 RoundedRectangle(cornerRadius: 10)
-                                    .fill(.background.opacity(0.9))
-                                    .shadow(color: .black.opacity(0.08), radius: 4, y: 1)
+                                    .fill(Theme.glassStrong)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Theme.stroke, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.08), radius: 5, y: 2)
                                     .matchedGeometryEffect(id: "highlight", in: highlight)
                             }
                         }
@@ -42,6 +43,7 @@ struct GlassSegmentedControl<Value: Hashable>: View {
             }
         }
         .padding(4)
-        .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
+        .background(Theme.fill, in: .rect(cornerRadius: Radius.field))
+        .overlay(RoundedRectangle(cornerRadius: Radius.field).strokeBorder(Theme.stroke, lineWidth: 1))
     }
 }

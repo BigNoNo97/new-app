@@ -89,6 +89,10 @@ final class TransactionStore {
         return categories.first { $0.id == id }
     }
 
+    func member(_ id: UUID) -> HouseholdMember? {
+        members.first { $0.id == id }
+    }
+
     func memberName(_ id: UUID) -> String? {
         members.first { $0.id == id }?.firstName
     }

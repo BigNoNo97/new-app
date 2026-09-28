@@ -17,12 +17,13 @@ struct GlassTextField: View {
     var identifier: String
 
     @State private var isRevealed = false
+    @FocusState private var isFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.textSecondary)
 
             HStack(spacing: Spacing.s) {
                 field
@@ -31,6 +32,7 @@ struct GlassTextField: View {
                     .autocorrectionDisabled(kind != .name)
                     .keyboardType(kind == .email ? .emailAddress : .default)
                     .textContentType(contentType)
+                    .focused($isFocused)
                     .accessibilityIdentifier(identifier)
 
                 if kind.isSecure {
@@ -38,7 +40,7 @@ struct GlassTextField: View {
                         isRevealed.toggle()
                     } label: {
                         Image(systemName: isRevealed ? "eye.slash" : "eye")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textTertiary)
                             .frame(width: 32, height: 32)
                             .contentShape(.rect)
                     }
@@ -47,18 +49,10 @@ struct GlassTextField: View {
                     .accessibilityIdentifier("\(identifier).reveal")
                 }
             }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 52)
-            .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
-            .overlay {
-                RoundedRectangle(cornerRadius: Radius.control)
-                    .strokeBorder(issue == nil ? Color.clear : Theme.expense, lineWidth: 1.5)
-            }
+            .fieldSurface(state: issue != nil ? .error : (isFocused ? .focused : .normal))
 
             if let issue {
-                Text(issue.message)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.expense)
+                FieldErrorText(message: issue.message)
                     .accessibilityIdentifier("\(identifier).error")
             }
         }
@@ -96,15 +90,15 @@ struct CheckboxRow<Label: View>: View {
                 Button {
                     isOn.toggle()
                 } label: {
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(isOn ? Theme.brand : (issue == nil ? Color.secondary : Theme.expense), lineWidth: 1.5)
-                        .background(isOn ? Theme.brand : Color.clear, in: .rect(cornerRadius: 6))
+                    RoundedRectangle(cornerRadius: 7)
+                        .strokeBorder(isOn ? Theme.buttonPrimary : (issue == nil ? Theme.textTertiary : Theme.destructive), lineWidth: 1.5)
+                        .background(isOn ? Theme.buttonPrimary : Theme.field, in: .rect(cornerRadius: 7))
                         .frame(width: 24, height: 24)
                         .overlay {
                             if isOn {
                                 Image(systemName: "checkmark")
                                     .font(.caption.weight(.bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(Theme.onButtonPrimary)
                             }
                         }
                         .frame(width: 44, height: 44, alignment: .leading)
@@ -116,12 +110,11 @@ struct CheckboxRow<Label: View>: View {
 
                 label
                     .font(.subheadline)
+                    .foregroundStyle(Theme.textSecondary)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
             }
             if let issue {
-                Text(issue.message)
-                    .font(.footnote)
-                    .foregroundStyle(Theme.expense)
+                FieldErrorText(message: issue.message)
             }
         }
     }
@@ -141,7 +134,7 @@ struct TermsConsentRow: View {
     var body: some View {
         CheckboxRow(isOn: $isOn, issue: issue, identifier: "terms.checkbox") {
             Text(Self.consentText)
-                .tint(Theme.brand)
+                .tint(Theme.brandInk)
         }
     }
 }
@@ -154,33 +147,99 @@ struct CategoryTile: View {
 
     var body: some View {
         VStack(spacing: Spacing.s) {
-            Text(draft.emoji)
-                .font(.system(size: 30))
-                .frame(width: 56, height: 56)
-                .background(Color(hex: draft.colorHex).opacity(0.18), in: .rect(cornerRadius: 16))
+            EmojiTile(emoji: draft.emoji, color: Color(hex: draft.colorHex), size: 40)
             Text(draft.name)
                 .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.textPrimary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.8)
         }
-        .frame(maxWidth: .infinity, minHeight: 112)
-        .padding(Spacing.s)
-        .glassEffect(.regular, in: .rect(cornerRadius: 20))
+        .frame(maxWidth: .infinity, minHeight: 92)
+        .padding(.vertical, Spacing.sm)
+        .padding(.horizontal, Spacing.xs)
+        .glassSurface(radius: 18)
         .overlay {
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(isSelected ? Theme.brand : Color.clear, lineWidth: 2)
         }
-        .overlay(alignment: .topTrailing) {
+        .overlay(alignment: .topLeading) {
             if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.palette)
-                    .foregroundStyle(.white, Theme.brand)
-                    .padding(6)
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Theme.onButtonPrimary)
+                    .frame(width: 20, height: 20)
+                    .background(Theme.buttonPrimary, in: .rect(cornerRadius: 6))
+                    .padding(8)
             }
         }
-        .opacity(isSelected ? 1 : 0.6)
+    }
+}
+
+/// An emoji inside a tinted rounded square (16% of the category color in light mode, 22% in
+/// dark), with a faint border in the same color. Sizes 30 / 40 / 48 / 64 in the design.
+struct EmojiTile: View {
+    let emoji: String
+    let color: Color
+    var size: CGFloat = 44
+    @Environment(\.colorScheme) private var scheme
+
+    var body: some View {
+        Text(emoji)
+            .font(.system(size: size * 0.5))
+            .frame(width: size, height: size)
+            .background(Theme.categoryTint(color, scheme: scheme), in: .rect(cornerRadius: size * 0.32))
+            .overlay {
+                RoundedRectangle(cornerRadius: size * 0.32)
+                    .strokeBorder(color.opacity(0.22), lineWidth: 1)
+            }
+    }
+}
+
+/// Field surface states from the design: normal, focused (green border and a 4pt ring) and
+/// error (red border and ring).
+enum FieldState {
+    case normal, focused, error
+}
+
+extension View {
+    func fieldSurface(state: FieldState = .normal) -> some View {
+        let border: Color = switch state {
+        case .normal: Theme.stroke
+        case .focused: Theme.brand
+        case .error: Theme.destructive
+        }
+        return self
+            .padding(.horizontal, 14)
+            .frame(minHeight: Metrics.fieldHeight)
+            .background(Theme.field, in: .rect(cornerRadius: Radius.field))
+            .overlay {
+                RoundedRectangle(cornerRadius: Radius.field)
+                    .strokeBorder(border, lineWidth: state == .normal ? 1 : 1.5)
+            }
+            .background {
+                if state != .normal {
+                    RoundedRectangle(cornerRadius: Radius.field + 4)
+                        .fill(border.opacity(0.16))
+                        .padding(-4)
+                }
+            }
+            .animation(.easeOut(duration: 0.15), value: state)
+    }
+}
+
+/// The red message under a field, with a warning icon.
+struct FieldErrorText: View {
+    let message: LocalizedStringKey
+
+    var body: some View {
+        Label {
+            Text(message)
+        } icon: {
+            Image(systemName: "exclamationmark.triangle")
+        }
+        .font(.footnote.weight(.medium))
+        .foregroundStyle(Theme.expense)
     }
 }
 
@@ -192,8 +251,8 @@ struct CurrencyPickerRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Theme.textSecondary)
             Menu {
                 Picker(selection: $code) {
                     ForEach(SupportedCurrencies.all, id: \.self) { code in
@@ -203,17 +262,20 @@ struct CurrencyPickerRow: View {
                     EmptyView()
                 }
             } label: {
-                HStack {
-                    Text(CurrencyNames.label(for: code))
-                        .foregroundStyle(.primary)
+                HStack(spacing: Spacing.sm) {
+                    Text(CurrencyNames.symbol(for: code))
+                        .font(.headline)
+                        .foregroundStyle(Theme.brandInk)
+                        .frame(width: 30, height: 30)
+                        .background(Theme.brandTint, in: .rect(cornerRadius: 8))
+                    Text(CurrencyNames.name(for: code))
+                        .foregroundStyle(Theme.textPrimary)
                     Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Image(systemName: "chevron.down")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.textTertiary)
                 }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 52)
-                .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
+                .fieldSurface()
             }
             .accessibilityIdentifier("currency.picker")
         }
@@ -229,12 +291,23 @@ enum CurrencyNames {
         return symbol == code ? "\(name) (\(code))" : "\(symbol) \(name)"
     }
 
+    /// "שקל חדש", "דולר אמריקאי".
+    static func name(for code: String) -> String {
+        Locale(identifier: "he_IL").localizedString(forCurrencyCode: code) ?? code
+    }
+
+    private static var symbols: [String: String] = [:]
+
+    /// "₪", "$", "€"; the code itself for currencies without a symbol.
     static func symbol(for code: String) -> String {
+        if let cached = symbols[code] { return cached }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "he_IL")
         formatter.currencyCode = code
-        return formatter.currencySymbol ?? code
+        let symbol = formatter.currencySymbol ?? code
+        symbols[code] = symbol
+        return symbol
     }
 }
 
@@ -281,7 +354,7 @@ struct ErrorBanner: View {
         .font(.subheadline.weight(.medium))
         .foregroundStyle(Theme.expense)
         .padding(Spacing.m)
-        .background(Theme.expense.opacity(0.12), in: .rect(cornerRadius: Radius.control))
+        .background(Theme.expenseTint, in: .rect(cornerRadius: Radius.control))
         .accessibilityIdentifier("form.error")
     }
 }
@@ -295,7 +368,7 @@ struct LoadingLabel: View {
         ZStack {
             Text(title).opacity(isLoading ? 0 : 1)
             if isLoading {
-                ProgressView().tint(.white)
+                ProgressView().tint(Theme.onButtonPrimary)
             }
         }
     }

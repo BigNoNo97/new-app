@@ -2,18 +2,39 @@ import SwiftUI
 import SnaPayCore
 
 enum Money {
-    /// "₪1,234.50" / "₪1,234" (no decimals for whole amounts), Hebrew locale.
-    static func string(_ amount: Decimal, currency: String, alwaysShowCents: Bool = false) -> String {
+    /// "₪1,234.50" / "₪1,234" (no decimals for whole amounts): the currency sign before the
+    /// number, wrapped in a left-to-right isolate so it reads the same inside Hebrew text.
+    static func string(_ amount: Decimal, currency: String, alwaysShowCents: Bool = false, showsPlus: Bool = false) -> String {
         let hasCents = amount.rounded(scale: 0) != amount
-        let style = Decimal.FormatStyle.Currency(code: currency, locale: Locale(identifier: "he_IL"))
-            .precision(.fractionLength(hasCents || alwaysShowCents ? 2 : 0))
-        return amount.formatted(style)
+        let number = abs(amount).formatted(
+            .number.locale(Locale(identifier: "en_US")).precision(.fractionLength(hasCents || alwaysShowCents ? 2 : 0))
+        )
+        let sign = amount < 0 ? "-" : (showsPlus ? "+" : "")
+        let symbol = CurrencyNames.symbol(for: currency)
+        let separator = symbol.count > 1 && symbol.allSatisfy(\.isLetter) ? " " : ""
+        return "\u{2066}\(sign)\(symbol)\(separator)\(number)\u{2069}"
     }
 
     /// Signed display for lists: income gets a "+", expenses show as positive amounts.
     static func listString(_ transaction: TransactionRow) -> String {
-        let text = string(transaction.amount, currency: transaction.currency)
-        return transaction.kind == .income ? "+" + text : text
+        string(transaction.amount, currency: transaction.currency, alwaysShowCents: true, showsPlus: transaction.kind == .income)
+    }
+}
+
+/// An amount in the design's style: semibold, tabular digits, counting when it changes.
+struct AmountText: View {
+    let text: String
+    var font: Font = Typography.heroAmount
+    var color: Color = Theme.textPrimary
+
+    var body: some View {
+        Text(text)
+            .font(font)
+            .monospacedDigit()
+            .foregroundStyle(color)
+            .contentTransition(.numericText())
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
     }
 }
 
@@ -29,59 +50,90 @@ enum DayLabel {
     }
 }
 
-/// Emoji in a tinted rounded square.
+/// A category's emoji tile (a card-style placeholder when there is no category).
 struct CategoryBadge: View {
     let category: CategoryItem?
     var size: CGFloat = 44
 
     var body: some View {
-        Text(category?.emoji ?? "💳")
-            .font(.system(size: size * 0.5))
-            .frame(width: size, height: size)
-            .background(
-                (category.map { Color(hex: $0.color) } ?? Color.secondary).opacity(0.16),
-                in: .rect(cornerRadius: size * 0.3)
-            )
+        if let category {
+            EmojiTile(emoji: category.emoji, color: Color(hex: category.color), size: size)
+        } else {
+            Image(systemName: "creditcard")
+                .font(.system(size: size * 0.4, weight: .medium))
+                .foregroundStyle(Theme.textSecondary)
+                .frame(width: size, height: size)
+                .background(Theme.fill, in: .rect(cornerRadius: size * 0.32))
+        }
     }
 }
 
-/// One transaction in a list.
+/// A household member's initial in a colored circle (avatars are the one place for circles).
+struct MemberAvatar: View {
+    let id: UUID
+    let name: String
+    var size: CGFloat = 18
+
+    private static let palette: [UInt32] = [0x5B8DEF, 0xE056B0, 0xF59E0B, 0x14B8A6, 0x8B5CF6]
+
+    var body: some View {
+        let index = id.uuidString.unicodeScalars.reduce(0) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF } % Self.palette.count
+        Text(String(name.prefix(1)))
+            .font(.system(size: size * 0.5, weight: .bold))
+            .foregroundStyle(.white)
+            .frame(width: size, height: size)
+            .background(Color(uiColor: UIColor(hex: Self.palette[index])), in: .circle)
+            .accessibilityLabel(name)
+    }
+}
+
+/// One transaction in a list: category tile, merchant, "category · time", the amount and
+/// (under it) where it came from and who logged it.
 struct TransactionRowView: View {
     let transaction: TransactionRow
     let category: CategoryItem?
     /// Shown in shared households.
-    var memberName: String?
+    var member: HouseholdMember?
 
     var body: some View {
-        HStack(spacing: Spacing.m) {
+        HStack(spacing: Spacing.sm) {
             CategoryBadge(category: category)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.body.weight(.medium))
+                    .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                HStack(spacing: 4) {
-                    if let sourceSymbol {
-                        Image(systemName: sourceSymbol)
-                    }
-                    Text(subtitle)
-                        .lineLimit(1)
-                }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(1)
             }
             Spacer(minLength: Spacing.s)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(Money.listString(transaction))
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(transaction.kind == .income ? Theme.income : Color.primary)
+            VStack(alignment: .trailing, spacing: 3) {
+                AmountText(
+                    text: transaction.isForeign
+                        ? Money.string(transaction.originalAmount, currency: transaction.originalCurrency, alwaysShowCents: true)
+                        : Money.listString(transaction),
+                    font: .body.weight(.semibold),
+                    color: transaction.kind == .income ? Theme.income : Theme.textPrimary
+                )
                 if transaction.isForeign {
-                    Text(Money.string(transaction.originalAmount, currency: transaction.originalCurrency))
+                    Text("≈ \(Money.string(transaction.amount, currency: transaction.currency, alwaysShowCents: true))")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.textTertiary)
+                }
+                HStack(spacing: 5) {
+                    if let member {
+                        MemberAvatar(id: member.id, name: member.firstName)
+                    }
+                    Image(systemName: TransactionSourceStyle.symbol(for: transaction.source))
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Theme.textTertiary)
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
     }
@@ -93,17 +145,32 @@ struct TransactionRowView: View {
 
     private var subtitle: String {
         let time = transaction.occurredAt.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).hour().minute())
-        let parts = [category?.name, memberName, transaction.source == .recurring ? "חיוב קבוע" : time]
+        let first = transaction.kind == .income && category == nil ? "הכנסה" : category?.name
+        let parts = [first, transaction.source == .recurring ? "חיוב קבוע" : time]
         return parts.compactMap { $0 }.joined(separator: " · ")
     }
+}
 
-    private var sourceSymbol: String? {
-        switch transaction.source {
+/// Source icons from the design: Apple Pay, manual, receipt, recurring, import.
+enum TransactionSourceStyle {
+    static func symbol(for source: TransactionSource) -> String {
+        switch source {
         case .applePay: "wave.3.right"
+        case .manual: "pencil"
+        case .receipt: "doc.text"
         case .recurring: "arrow.triangle.2.circlepath"
-        case .receipt: "doc.text.viewfinder"
-        case .imported, .openBanking: "building.columns"
-        case .manual: nil
+        case .imported, .openBanking: "square.and.arrow.down"
+        }
+    }
+
+    static func name(for source: TransactionSource) -> String {
+        switch source {
+        case .applePay: "Apple Pay"
+        case .manual: "ידני"
+        case .receipt: "קבלה"
+        case .recurring: "חיוב קבוע"
+        case .imported: "ייבוא"
+        case .openBanking: "בנקאות פתוחה"
         }
     }
 }
@@ -115,20 +182,22 @@ struct DayGroupedList: View {
     var onSelect: (TransactionRow) -> Void
 
     var body: some View {
-        LazyVStack(alignment: .leading, spacing: Spacing.m) {
+        LazyVStack(alignment: .leading, spacing: Spacing.sectionGap) {
             ForEach(groups) { group in
                 VStack(alignment: .leading, spacing: Spacing.s) {
                     HStack {
                         Text(DayLabel.text(for: group.day))
-                            .font(.subheadline.weight(.semibold))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.textPrimary)
                         Spacer()
-                        Text(Money.string(abs(group.net), currency: store.mainCurrency))
+                        Text(Money.string(abs(group.net), currency: store.mainCurrency, alwaysShowCents: true))
                             .font(.footnote)
-                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.textSecondary)
                     }
                     .padding(.horizontal, Spacing.xs)
 
-                    GlassCard(padding: Spacing.s + 4) {
+                    GlassCard(padding: Spacing.sm) {
                         VStack(spacing: 0) {
                             ForEach(Array(group.transactions.enumerated()), id: \.element.id) { index, transaction in
                                 Button {
@@ -137,13 +206,16 @@ struct DayGroupedList: View {
                                     TransactionRowView(
                                         transaction: transaction,
                                         category: store.category(transaction.categoryID),
-                                        memberName: store.isShared ? store.memberName(transaction.userID) : nil
+                                        member: store.isShared ? store.member(transaction.userID) : nil
                                     )
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("transaction.\(transaction.merchant ?? transaction.id.uuidString)")
                                 if index < group.transactions.count - 1 {
-                                    Divider().padding(.leading, 60)
+                                    Rectangle()
+                                        .fill(Theme.separator)
+                                        .frame(height: 1)
+                                        .padding(.leading, 56)
                                 }
                             }
                         }
@@ -162,15 +234,20 @@ struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: Spacing.m) {
             Image(systemName: symbol)
-                .font(.system(size: 36, weight: .medium))
+                .font(.system(size: 34, weight: .medium))
                 .foregroundStyle(Theme.brand)
-                .frame(width: 80, height: 80)
-                .glassEffect(.regular, in: .rect(cornerRadius: 24))
+                .frame(width: 96, height: 96)
+                .glassSurface(radius: Radius.card)
+                .overlay {
+                    RoundedRectangle(cornerRadius: Radius.card)
+                        .strokeBorder(Theme.brand.opacity(0.35), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                }
             Text(title)
                 .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.textPrimary)
             Text(message)
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -190,10 +267,10 @@ struct SyncStatusBanner: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .font(.footnote.weight(.medium))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(store.syncProblem == .rejected ? Theme.warning : Theme.textSecondary)
             .padding(.horizontal, Spacing.m)
             .padding(.vertical, 10)
-            .glassEffect(.regular, in: .rect(cornerRadius: Radius.control))
+            .background(store.syncProblem == .rejected ? Theme.warningTint : Theme.fill, in: .rect(cornerRadius: Radius.chip))
             .accessibilityIdentifier("sync.banner")
         }
     }
