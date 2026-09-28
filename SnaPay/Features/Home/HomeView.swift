@@ -7,6 +7,8 @@ enum HomePeriod: Hashable {
 
 struct HomeView: View {
     @Environment(TransactionStore.self) private var store
+    /// Opens the add sheet (owned by the tab view).
+    var onAdd: () -> Void = {}
 
     @State private var period: HomePeriod = .month
     @State private var customRange = DateInterval(
@@ -36,7 +38,7 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Spacing.l) {
+            VStack(alignment: .leading, spacing: 14) {
                 header
                 SyncStatusBanner(store: store)
 
@@ -51,10 +53,12 @@ struct HomeView: View {
                         isPickingRange = true
                     } label: {
                         Label(rangeText, systemImage: "calendar")
-                            .font(.subheadline.weight(.medium))
+                            .font(.subheadline.weight(.semibold))
                     }
-                    .foregroundStyle(Theme.brand)
+                    .foregroundStyle(Theme.brandInk)
                 }
+
+                summaryCard
 
                 if !store.pendingCaptures.isEmpty {
                     PendingCapturesCard(store: store)
@@ -72,23 +76,34 @@ struct HomeView: View {
                     )
                 }
 
-                summaryCard
-
                 if let trip = store.activeTrip {
                     TripSummaryCard(trip: trip, store: store)
                 }
 
                 if periodTransactions.isEmpty {
-                    EmptyStateView(
-                        symbol: "tray",
-                        title: "עוד אין כאן הוצאות",
-                        message: "לחיצה על + מוסיפה הוצאה או הכנסה. עם התיעוד בקליק, תשלומי Apple Pay נכנסים לכאן כמעט לבד."
-                    )
+                    VStack(spacing: Spacing.m) {
+                        EmptyStateView(
+                            symbol: "wave.3.right",
+                            title: "עוד אין הוצאות \(periodName)",
+                            message: "אחרי התשלום הבא ב-Apple Pay הוא יופיע כאן. אפשר גם להוסיף הוצאה ידנית."
+                        )
+                        Button(action: onAdd) {
+                            Label("הוספת הוצאה", systemImage: "plus")
+                        }
+                        .buttonStyle(.primary)
+                        .padding(.horizontal, Spacing.m)
+                        .accessibilityIdentifier("home.empty.add")
+                        if store.quickLogFirstCaptureAt == nil {
+                            Button("הגדרת תיעוד בקליק") { isShowingQuickLogSetup = true }
+                                .buttonStyle(.text)
+                        }
+                    }
                 } else {
                     DayGroupedList(groups: TransactionSummary.groupedByDay(periodTransactions), store: store) { selected = $0 }
+                        .padding(.top, 6)
                 }
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
             .padding(.bottom, Spacing.xl)
         }
         .refreshable { await store.refresh() }
@@ -112,20 +127,52 @@ struct HomeView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("שלום, \(store.profile.firstName)")
-                    .font(.largeTitle.weight(.bold))
+        HStack(spacing: Spacing.sm) {
+            MemberAvatar(id: store.userID, name: store.profile.firstName, size: 44)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(Date.now.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).weekday(.wide).day().month(.wide)))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textTertiary)
+                Text("\(greeting), \(store.profile.firstName)")
+                    .font(Typography.title2)
+                    .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            Spacer()
+            Spacer(minLength: 0)
             if store.isRefreshing {
                 ProgressView()
             }
+            if store.isShared {
+                HStack(spacing: Spacing.s) {
+                    HStack(spacing: -8) {
+                        ForEach(store.members.prefix(3)) { member in
+                            MemberAvatar(id: member.id, name: member.firstName, size: 24)
+                                .overlay(Circle().strokeBorder(Theme.glassStrong, lineWidth: 2))
+                        }
+                    }
+                    Text("משותף")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .padding(.horizontal, 10)
+                .frame(height: 44)
+                .glassSurface(radius: Radius.field)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("חשבון משותף פעיל")
+            }
         }
         .padding(.top, Spacing.s)
+    }
+
+    /// "בוקר טוב" / "צהריים טובים" / "ערב טוב" / "לילה טוב" by the hour.
+    private var greeting: String {
+        switch Calendar.current.component(.hour, from: .now) {
+        case 5..<12: "בוקר טוב"
+        case 12..<17: "צהריים טובים"
+        case 17..<22: "ערב טוב"
+        default: "לילה טוב"
+        }
     }
 
     private var periodName: String {
@@ -150,33 +197,68 @@ struct HomeView: View {
         return "\(customRange.start.formatted(style)) – \(lastDay.formatted(style))"
     }
 
+    private var monthName: String {
+        Date.now.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).month(.wide))
+    }
+
+    /// "1–28 בספט׳": the part of the period so far.
+    private var intervalText: String {
+        let style = Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.abbreviated)
+        let last = min(interval.end.addingTimeInterval(-1), .now)
+        let calendar = Calendar.current
+        if calendar.isDate(interval.start, equalTo: last, toGranularity: .month) {
+            return "\(calendar.component(.day, from: interval.start))–\(last.formatted(style))"
+        }
+        return "\(interval.start.formatted(style)) – \(last.formatted(style))"
+    }
+
     private var summaryCard: some View {
-        GlassCard(padding: Spacing.l) {
-            VStack(alignment: .leading, spacing: Spacing.m) {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
+        GlassCard(padding: Spacing.gutter) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack {
                     Text("הוצאות \(periodName)")
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(Money.string(totals.expenses, currency: store.mainCurrency))
-                        .font(.system(size: 44, weight: .semibold, design: .rounded))
-                        .minimumScaleFactor(0.6)
-                        .lineLimit(1)
+                        .foregroundStyle(Theme.textSecondary)
+                    Spacer()
+                    Text(intervalText)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+                HStack(alignment: .bottom, spacing: Spacing.s) {
+                    AmountText(text: Money.string(totals.expenses, currency: store.mainCurrency))
                         .accessibilityIdentifier("home.totalSpent")
+                    Spacer(minLength: 0)
                     if previousTotals.expenses > 0 {
                         comparisonChip
+                            .padding(.bottom, 4)
                     }
                 }
+                .padding(.top, -6)
 
-                IncomeExpenseBar(income: totals.income, expenses: totals.expenses)
+                if totals.count == 0 {
+                    Text(period == .month ? "\(monthName) רק התחיל. כל הוצאה תופיע כאן." : "כל הוצאה בתקופה הזו תופיע כאן.")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.textSecondary)
+                } else {
+                    IncomeExpenseBar(income: totals.income, expenses: totals.expenses)
 
-                HStack {
-                    StatLabel(title: "הכנסות", value: Money.string(totals.income, currency: store.mainCurrency), color: Theme.income)
-                    Spacer()
-                    StatLabel(title: "מאזן", value: Money.string(totals.balance, currency: store.mainCurrency),
-                              color: totals.balance >= 0 ? Theme.income : Theme.expense)
-                    Spacer()
-                    StatLabel(title: "פעולות", value: "\(totals.count)", color: .primary)
+                    HStack {
+                        legend(color: Theme.expense, title: "הוצאות", value: nil)
+                        Spacer()
+                        legend(color: Theme.brand, title: "הכנסות", value: Money.string(totals.income, currency: store.mainCurrency))
+                    }
+                    .font(.footnote)
                 }
+            }
+        }
+    }
+
+    private func legend(color: Color, title: LocalizedStringKey, value: String?) -> some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: 8, height: 8)
+            Text(title).foregroundStyle(Theme.textSecondary)
+            if let value {
+                Text(value).fontWeight(.semibold).monospacedDigit().foregroundStyle(Theme.textPrimary)
             }
         }
     }
@@ -187,58 +269,36 @@ struct HomeView: View {
         let text = "\(Money.string(abs(difference), currency: store.mainCurrency)) \(isLess ? "פחות" : "יותר") \(previousName)"
         return HStack(spacing: 4) {
             Image(systemName: isLess ? "arrow.down" : "arrow.up")
+                .font(.caption.weight(.bold))
             Text(text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
         .font(.footnote.weight(.semibold))
-        .foregroundStyle(isLess ? Theme.income : Theme.expense)
+        .foregroundStyle(isLess ? Theme.brandInk : Theme.expense)
         .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background((isLess ? Theme.income : Theme.expense).opacity(0.12), in: .rect(cornerRadius: 8))
+        .frame(height: 30)
+        .background(isLess ? Theme.brandTint : Theme.expenseTint, in: .rect(cornerRadius: Radius.chip))
     }
 }
 
-private struct StatLabel: View {
-    let title: LocalizedStringKey
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(color)
-        }
-    }
-}
-
-/// Two bars: income and expenses, relative to the larger of the two.
+/// One bar split between expenses (red) and income (green), in proportion.
 struct IncomeExpenseBar: View {
     let income: Decimal
     let expenses: Decimal
 
     var body: some View {
-        let largest = max(income, expenses)
-        let incomeShare = largest == 0 ? 0 : NSDecimalNumber(decimal: income / largest).doubleValue
-        let expenseShare = largest == 0 ? 0 : NSDecimalNumber(decimal: expenses / largest).doubleValue
-        VStack(spacing: 6) {
-            bar(share: incomeShare, color: Theme.income)
-            bar(share: expenseShare, color: Theme.expense)
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func bar(share: Double, color: Color) -> some View {
+        let total = income + expenses
+        let expenseShare = total == 0 ? 0.5 : NSDecimalNumber(decimal: expenses / total).doubleValue
         GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4).fill(color.opacity(0.12))
-                RoundedRectangle(cornerRadius: 4).fill(color)
-                    .frame(width: max(proxy.size.width * share, share > 0 ? 8 : 0))
+            HStack(spacing: 3) {
+                RoundedRectangle(cornerRadius: 5).fill(total == 0 ? Theme.track : Theme.expense)
+                    .frame(width: max((proxy.size.width - 3) * expenseShare, expenses > 0 ? 6 : 0))
+                RoundedRectangle(cornerRadius: 5).fill(total == 0 ? Theme.track : Theme.brand.opacity(0.9))
             }
         }
-        .frame(height: 8)
+        .frame(height: 12)
+        .accessibilityHidden(true)
     }
 }
 
@@ -251,27 +311,45 @@ struct TripSummaryCard: View {
         let entries = store.transactions.filter { $0.categoryID == trip.id && $0.kind == .expense }
         let inTripCurrency = entries.filter { $0.originalCurrency == trip.tripCurrency }.reduce(Decimal(0)) { $0 + $1.originalAmount }
         let inMain = entries.reduce(Decimal(0)) { $0 + $1.amount }
-        GlassCard {
-            HStack(spacing: Spacing.m) {
-                CategoryBadge(category: trip, size: 48)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(trip.name)
-                        .font(.headline)
-                    Text("הוצאות חדשות נרשמות ב-\(trip.tripCurrency ?? "")")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(Money.string(inTripCurrency, currency: trip.tripCurrency ?? store.mainCurrency))
-                        .font(.headline)
-                    Text(Money.string(inMain, currency: store.mainCurrency))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+        HStack(spacing: Spacing.sm) {
+            CategoryBadge(category: trip, size: 48)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(trip.name) · \(CurrencyNames.symbol(for: trip.tripCurrency ?? store.mainCurrency))")
+                    .font(.headline)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(datesText)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: Spacing.s)
+            VStack(alignment: .trailing, spacing: 2) {
+                AmountText(text: Money.string(inTripCurrency, currency: trip.tripCurrency ?? store.mainCurrency, alwaysShowCents: true),
+                           font: .title3.weight(.bold))
+                Text("≈ \(Money.string(inMain, currency: store.mainCurrency))")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textTertiary)
             }
         }
+        .padding(Spacing.m)
+        .background(
+            LinearGradient(colors: [Color(hex: trip.color).opacity(0.18), Theme.glass], startPoint: .leading, endPoint: .trailing),
+            in: .rect(cornerRadius: Radius.card)
+        )
+        .glassSurface()
+        .accessibilityElement(children: .combine)
         .accessibilityIdentifier("home.trip")
+    }
+
+    /// "24 בספט׳ – 2 באוק׳ · נשארו 4 ימים".
+    private var datesText: String {
+        let calendar = Calendar.current
+        let style = Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.abbreviated)
+        guard let start = trip.tripStartsOn.flatMap({ DayString.date(from: $0) }) else { return "" }
+        guard let end = trip.tripEndsOn.flatMap({ DayString.date(from: $0) }) else { return "מ-\(start.formatted(style))" }
+        let left = calendar.dateComponents([.day], from: calendar.startOfDay(for: .now), to: end).day ?? 0
+        let remaining = left <= 0 ? "יום אחרון" : (left == 1 ? "נשאר יום אחד" : "נשארו \(left) ימים")
+        return "\(start.formatted(style)) – \(end.formatted(style)) · \(remaining)"
     }
 }
 
@@ -293,6 +371,7 @@ struct DateRangeSheet: View {
         NavigationStack {
             VStack(spacing: Spacing.m) {
                 DatePicker("מתאריך", selection: $start, in: ...end, displayedComponents: .date)
+                    .tint(Theme.brand)
                 DatePicker("עד תאריך", selection: $end, in: start..., displayedComponents: .date)
                 Spacer()
                 Button("הצגה") {

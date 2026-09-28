@@ -42,7 +42,7 @@ struct MainTabView: View {
         ZStack {
             Group {
                 switch selection {
-                case .home: HomeView()
+                case .home: HomeView(onAdd: { isAddSheetPresented = true })
                 case .expenses: ExpensesView()
                 case .goals: GoalsView()
                 case .profile: ProfileView()
