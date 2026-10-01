@@ -29,7 +29,8 @@
 - [x] ממך: פרויקט Firebase (Authentication עם Email/Password, ‏Firestore ב-`me-west1`, ורישום אפליקציית iOS)
 - [x] ממך: משתני Firebase ב-GitHub (`FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID`, `FIREBASE_SENDER_ID`) והסוד `FIREBASE_SERVICE_ACCOUNT` לפריסת החוקים
 - [x] מיזוג PR 4 באישורך (1.10)
-- [ ] ההעלאה הראשונה ל-TestFlight נכשלה בייבוא התעודה ("סיסמה שגויה"): כנראה `.p12` בהצפנת OpenSSL 3. הצינור ממיר עכשיו להצפנה הישנה; לאמת בהרצה ידנית
+- [x] הצינור ממיר את ה-`.p12` להצפנה ש-macOS קורא, ומסיר ירידת שורה מהסיסמה (PR 5)
+- [ ] ממך: הסיסמה ב-`DIST_CERT_PASSWORD` לא פותחת את `DIST_CERT_P12` (נבדק ב-OpenSSL בשתי הרצות). לעדכן את שני הסודות מהמחשב שלך, ואז להריץ שוב את ההעלאה
 - [ ] ממך: לחשבון השירות `firebase-adminsdk` ב-Google Cloud IAM להוסיף `Service Usage Consumer`, ‏`Firebase Rules Admin` ו-`Cloud Datastore Index Admin` (הפריסה נכשלה ב-403), ואז להריץ מחדש את הפריסה
 - [ ] לחדש את התעודה והפרופילים עד 2027-10-01. התעודה משותפת ל-Gym Tracker, ולכן ביטול שלה שובר את שתי האפליקציות
 - [ ] התראה לשותפים על הוצאה חדשה: צריך שרת קטן (למשל Cloudflare Workers, חינם) שקורא את הטוקנים מ-Firestore ושולח דרך APNs, ומפתח APNs ממך
