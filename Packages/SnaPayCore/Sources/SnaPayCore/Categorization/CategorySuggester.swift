@@ -5,7 +5,7 @@ import Foundation
 /// Suggestions are ranked by how often the user (or their household) picked each category
 /// for that merchant; categories never used for the merchant fall back to overall usage,
 /// then to the category order the user set.
-public struct CategorySuggester: Sendable {
+public struct CategorySuggester: Codable, Equatable, Sendable {
     /// normalized merchant → (category id → times chosen)
     public private(set) var merchantHistory: [String: [String: Int]]
     /// category id → times chosen overall

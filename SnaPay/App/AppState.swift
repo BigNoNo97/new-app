@@ -25,31 +25,50 @@ final class AppState {
     private(set) var profile: Profile?
     /// Set when a link from an email couldn't be completed (expired, already used).
     var linkError: AuthFailure?
+    /// Invites to a shared household waiting for my answer (shown as a sheet on the main screen).
+    private(set) var pendingInvites: [PendingInvite] = []
 
     private let auth: AuthServicing
     private let account: AccountRepository
+    private let data: DataRepository
+    /// The signed-in user's data; set once they reach the main app.
+    private(set) var store: TransactionStore?
     private var userID: UUID?
     private var isUnlocked = false
 
-    init(auth: AuthServicing, account: AccountRepository) {
+    init(auth: AuthServicing, account: AccountRepository, data: DataRepository) {
         self.auth = auth
         self.account = account
+        self.data = data
     }
 
-    /// The services the app runs with: Supabase, or in-memory for UI tests.
+    /// The services the app runs with: Firebase, or in-memory for UI tests.
     static func live() -> AppState {
         if AppConfig.isUITesting {
+            prepareQuickLogForUITests()
             let services = InMemoryServices()
-            return AppState(auth: services, account: services)
+            return AppState(auth: services, account: services, data: services)
         }
-        guard let url = AppConfig.supabaseURL, let key = AppConfig.supabaseAnonKey else {
+        guard let services = FirebaseServices.shared else {
             let services = InMemoryServices()
-            let state = AppState(auth: services, account: services)
+            let state = AppState(auth: services, account: services, data: services)
             state.route = .serverNotConfigured
             return state
         }
-        let services = SupabaseServices(url: url, anonKey: key)
-        return AppState(auth: services, account: services)
+        return AppState(auth: services, account: services, data: services)
+    }
+
+    /// Every UI test starts from a clean quick-log state (the shared files outlive the app).
+    private static func prepareQuickLogForUITests() {
+        QuickLogStorage.erase()
+        DevicePreferences.hidesQuickLogSetupCard = false
+        guard AppConfig.seedsQuickLogCapture else { return }
+        QuickLogStorage.updateInbox {
+            $0.add(CapturedPayment(
+                amount: Decimal(string: "23.9")!, currency: "ILS", merchant: "קפה לנדוור",
+                card: "Visa", capturedAt: .now.addingTimeInterval(-600)
+            ))
+        }
     }
 
     // MARK: Launch
@@ -65,8 +84,8 @@ final class AppState {
 
     func finishNotificationPrompt(allow: Bool) async {
         DevicePreferences.hasSeenNotificationPrompt = true
-        if allow {
-            await NotificationPermission.request()
+        if allow, await NotificationPermission.request() {
+            await PushNotifications.shared.registerIfAllowed()
         }
         await routeFromSession()
     }
@@ -129,11 +148,76 @@ final class AppState {
     }
 
     func signOut() async {
+        // While the session still works: this device stops getting partner notifications.
+        if let token = PushNotifications.shared.deviceToken {
+            try? await account.unregisterDeviceToken(token)
+        }
         await auth.signOut()
+        store?.eraseLocalData()
+        store = nil
+        DevicePreferences.cachedProfile = nil
         profile = nil
         userID = nil
         isUnlocked = false
         route = .welcome
+    }
+
+    var currentEmail: String? { auth.currentEmail }
+
+    /// Permanently deletes the account on the server, then clears this device. The password
+    /// confirms it's really the user (the server asks for a fresh sign-in).
+    func deleteAccount(password: String) async throws {
+        do {
+            try await account.deleteAccount(password: password)
+        } catch let failure as AuthFailure {
+            throw failure
+        } catch {
+            throw error is URLError ? AuthFailure.network : AuthFailure.unknown
+        }
+        await signOut()
+    }
+
+    // MARK: Shared households
+
+    func loadPendingInvites() async {
+        pendingInvites = (try? await account.fetchPendingInvites()) ?? pendingInvites
+    }
+
+    /// Joins the invite's household; my own entries move with me. The data is reloaded for the
+    /// new household.
+    func accept(_ invite: PendingInvite) async throws {
+        _ = try await account.acceptInvite(invite.id)
+        pendingInvites.removeAll { $0.id == invite.id }
+        await reopenStore()
+    }
+
+    func decline(_ invite: PendingInvite) async throws {
+        try await account.declineInvite(invite.id)
+        pendingInvites.removeAll { $0.id == invite.id }
+    }
+
+    /// Leaves the shared household for a personal one; my own entries come with me.
+    func leaveHousehold() async throws {
+        _ = try await account.leaveHousehold()
+        await reopenStore()
+    }
+
+    /// After the active household changed: fresh profile and a new store for the new household.
+    /// Payments waiting in the quick-log inbox are kept and land in the new household.
+    private func reopenStore() async {
+        guard let userID else { return }
+        store?.eraseLocalData(keepingQuickLog: true)
+        store = nil
+        if let fresh = try? await account.fetchProfile(userID: userID) {
+            profile = fresh
+            DevicePreferences.cachedProfile = fresh
+        }
+        openStore()
+    }
+
+    private func registerDevice(_ token: String) async {
+        guard userID != nil else { return }
+        try? await account.registerDeviceToken(token, environment: PushNotifications.environment)
     }
 
     // MARK: Onboarding
@@ -148,6 +232,10 @@ final class AppState {
         }
         try await account.completeOnboarding(userID: userID, householdID: household, categories: categories)
         self.profile?.onboardingCompleted = true
+        openStore()
+        startPush()
+        // Someone may have invited this email before they signed up.
+        Task { await loadPendingInvites() }
         route = .main
     }
 
@@ -175,23 +263,56 @@ final class AppState {
 
     private func enterApp(userID: UUID) async {
         self.userID = userID
+        let profile: Profile
         do {
-            let profile = try await account.fetchProfile(userID: userID)
-            self.profile = profile
-            if !profile.onboardingCompleted {
-                route = .niceToMeetYou
-            } else if DevicePreferences.isFaceIDEnabled && !isUnlocked && !AppConfig.isUITesting {
-                route = .locked
-            } else {
-                route = .main
-            }
+            profile = try await account.fetchProfile(userID: userID)
+            DevicePreferences.cachedProfile = profile
         } catch let error where Self.isConnectionError(error) {
-            route = .connectionProblem
+            // Offline: carry on with the profile saved on this device, if it's this user's.
+            guard let cached = DevicePreferences.cachedProfile, cached.id == userID else {
+                route = .connectionProblem
+                return
+            }
+            profile = cached
         } catch {
             // Session exists but the profile can't be read (e.g. deleted account): start over.
             await auth.signOut()
             route = .welcome
+            return
         }
+        self.profile = profile
+        if !profile.onboardingCompleted {
+            route = .niceToMeetYou
+            return
+        }
+        openStore()
+        startPush()
+        Task { await loadPendingInvites() }
+        if DevicePreferences.isFaceIDEnabled && !isUnlocked && !AppConfig.isUITesting {
+            route = .locked
+        } else {
+            route = .main
+        }
+    }
+
+    /// Registers this device for partner notifications (now, and whenever APNs hands over a new
+    /// token).
+    private func startPush() {
+        PushNotifications.shared.onToken = { [weak self] token in
+            Task { await self?.registerDevice(token) }
+        }
+        if let token = PushNotifications.shared.deviceToken {
+            Task { await registerDevice(token) }
+        }
+        Task { await PushNotifications.shared.registerIfAllowed() }
+    }
+
+    private func openStore() {
+        guard let profile, let userID, let household = profile.activeHouseholdID else { return }
+        guard store?.userID != userID else { return }
+        let store = TransactionStore(profile: profile, userID: userID, householdID: household, repository: data)
+        self.store = store
+        Task { await store.start() }
     }
 
     func retryAfterConnectionProblem() async {

@@ -32,7 +32,7 @@ public enum CredentialsValidator {
     public static let minimumPasswordLength = 8
     public static let maximumNameLength = 80
 
-    /// Validates the sign-up form. Rules match the server (`supabase/config.toml`):
+    /// Validates the sign-up form. Firebase accepts any password of 6+ characters; the app asks for more:
     /// at least 8 characters with Latin letters and digits.
     public static func validateSignUp(
         fullName: String,

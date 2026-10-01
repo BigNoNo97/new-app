@@ -2,6 +2,7 @@ import SwiftUI
 
 @main
 struct SnaPayApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var appState = AppState.live()
 
     var body: some Scene {

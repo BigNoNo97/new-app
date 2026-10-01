@@ -1,21 +1,76 @@
 name: CI
 
+# macOS minutes count 10x against the Actions quota, so:
+# - core-tests (Linux) runs on every change, drafts included;
+# - ios (macOS: build, UI tests, screenshots) runs only for pull requests that are ready for
+#   review, or when started by hand. Keep PRs as drafts while iterating.
+
 on:
   pull_request:
-    paths-ignore: ["**.md", "docs/**"]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
   workflow_dispatch:
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-split-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
+  core-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container: swift:6.2
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install time zone data
+        run: apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq tzdata
+
+      - name: Test SnaPayCore
+        run: swift test --package-path Packages/SnaPayCore
+
+  # paths-ignore above looks at the whole pull request, so on its own a docs-only push to a PR
+  # that touches the app would still rebuild it. This looks at just the new push.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        env:
+          ACTION: ${{ github.event.action }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Opening, reopening, marking ready and manual runs always build.
+          if [ "$ACTION" != "synchronize" ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BEFORE" "$AFTER")
+          echo "$changed"
+          if echo "$changed" | grep -qvE '(\.md$|^docs/|^signing/|^firebase/|^\.github/workflows/(testflight|firebase)\.yml$)'; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  ios:
+    needs: [core-tests, changes]
+    if: needs.changes.outputs.app == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false))
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
+    permissions:
+      # Pushes screenshots to the ci-screenshots branch (see the last step).
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -25,8 +80,12 @@ jobs:
           sudo xcode-select -s "$XCODE/Contents/Developer"
           xcodebuild -version
 
-      - name: Test SnaPayCore
-        run: swift test --package-path Packages/SnaPayCore
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('project.yml') }}
+          restore-keys: spm-${{ runner.os }}-
 
       - name: Generate Xcode project
         run: |
@@ -67,3 +126,40 @@ jobs:
           path: build/screenshots
           if-no-files-found: ignore
           retention-days: 14
+
+      # Artifacts download through blob storage that some reviewers (and the cloud dev
+      # environment) can't reach, so the latest screenshots also live on a branch:
+      # ci-screenshots/<run>/<screen-name>.png. The branch is owned by CI and replaced each run.
+      - name: Publish screenshots to the ci-screenshots branch
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [ -f build/screenshots/manifest.json ] || exit 0
+          OUT="$RUNNER_TEMP/ci-screenshots"
+          mkdir -p "$OUT"
+          python3 - "$OUT" <<'PY'
+          import json, os, re, shutil, sys
+          out = sys.argv[1]
+          src = "build/screenshots"
+          def walk(node):
+              if isinstance(node, dict):
+                  if "exportedFileName" in node and "suggestedHumanReadableName" in node:
+                      yield node
+                  for value in node.values():
+                      yield from walk(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      yield from walk(value)
+          for item in walk(json.load(open(os.path.join(src, "manifest.json")))):
+              name = re.sub(r"_\d+_[0-9A-F-]+\.png$", ".png", item["suggestedHumanReadableName"])
+              shutil.copy(os.path.join(src, item["exportedFileName"]), os.path.join(out, name))
+          PY
+          cd "$OUT"
+          echo "Screenshots from ${{ github.sha }} (${{ github.ref_name }}), run ${{ github.run_id }}" > README.md
+          git init -q
+          git checkout -q -b ci-screenshots
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com add -A
+          git -c user.name=github-actions -c user.email=github-actions@users.noreply.github.com commit -qm "Screenshots for ${{ github.sha }}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git" ci-screenshots
+          ls

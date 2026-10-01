@@ -109,3 +109,15 @@ extension Decimal {
         return result
     }
 }
+
+extension KeyedDecodingContainer {
+    /// Decodes a money or rate column and rounds it. JSON numbers can come back from
+    /// `JSONDecoder` via `Double` (3.7 → 3.7000000000000002), which must not leak into amounts.
+    func decodeDecimal(forKey key: Key, scale: Int) throws -> Decimal {
+        try decode(Decimal.self, forKey: key).rounded(scale: scale)
+    }
+
+    func decodeDecimalIfPresent(forKey key: Key, scale: Int) throws -> Decimal? {
+        try decodeIfPresent(Decimal.self, forKey: key)?.rounded(scale: scale)
+    }
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>SnaPay · נעילת Face ID</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&amp;family=Rubik:wght@600;700&amp;display=swap">
+<style>
+html,body{margin:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Hebrew","Heebo",system-ui,sans-serif;color:#F2F6F8;-webkit-font-smoothing:antialiased;background:#07101A}
+a{color:#5BE69A;text-decoration:none;font-weight:600}a:hover{color:#3DDC84}
+button{font:inherit;color:inherit;border:0;background:none;padding:0;margin:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.g{background:rgba(255,255,255,0.07);-webkit-backdrop-filter:blur(28px) saturate(170%);backdrop-filter:blur(28px) saturate(170%);border:1px solid rgba(255,255,255,0.11);box-shadow:inset 0 1px 0 rgba(255,255,255,0.22),0 14px 36px rgba(0,0,0,0.38);border-radius:24px}
+.g2{background:rgba(255,255,255,0.12);-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);border:1px solid rgba(255,255,255,0.11);box-shadow:inset 0 1px 0 rgba(255,255,255,0.22)}
+.n{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums}
+.i{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.bp{height:54px;border-radius:16px;background:#3DDC84;color:#04210F;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.35),0 10px 24px rgba(61,220,132,0.30);box-sizing:border-box;text-decoration:none}
+.bs{height:54px;border-radius:16px;color:#F2F6F8;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box;text-decoration:none}
+.bt{min-height:44px;color:#5BE69A;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.bd{height:54px;border-radius:16px;background:#FF6B61;color:#FFFFFF;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px;box-sizing:border-box}
+.ib{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;color:#F2F6F8;flex-shrink:0}
+.fl{font-size:13px;font-weight:500;color:#B3C0C8}
+.fi{height:52px;border-radius:14px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.11);display:flex;align-items:center;padding:0 14px;gap:10px;box-sizing:border-box}
+.fi input{flex:1;border:0;background:transparent;outline:none;font-size:17px;min-width:0;text-align:right;padding:0}
+.fi input::placeholder{color:#8D9CA7}
+.foc{border-color:#3DDC84;box-shadow:0 0 0 4px rgba(61,220,132,0.16)}
+.err{border-color:#FF6B61;box-shadow:0 0 0 4px rgba(255,107,97,0.16)}
+.sep{height:1px;background:rgba(255,255,255,0.08)}
+.lbl{font-size:13px;font-weight:600;color:#8D9CA7}
+.chip{height:36px;border-radius:12px;padding:0 12px;display:flex;align-items:center;gap:6px;font-size:14px;font-weight:500;white-space:nowrap;flex-shrink:0;box-sizing:border-box}
+.key{height:52px;border-radius:14px;font-size:24px;font-weight:500;display:flex;align-items:center;justify-content:center}
+</style>
+</helmet>
+<main style="position:relative;width:393px;height:852px;overflow:hidden;box-sizing:border-box" dir="rtl"><div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden"><div style="position:absolute;inset:0;background:linear-gradient(165deg,#050A12 0%,#0A1524 38%,#08202B 72%,#06282B 100%)"></div><div style="position:absolute;left:92px;top:-84px;width:266px;height:266px;border-radius:50%;background:radial-gradient(circle,rgba(31,163,138,0.55) 0%,rgba(0,0,0,0) 68%);filter:blur(18px)"></div><div style="position:absolute;left:28px;top:80px;width:246px;height:246px;border-radius:50%;background:radial-gradient(circle,rgba(47,111,224,0.38) 0%,rgba(0,0,0,0) 68%);filter:blur(18px)"></div><div style="position:absolute;left:241px;top:271px;width:298px;height:298px;border-radius:50%;background:radial-gradient(circle,rgba(61,220,132,0.22) 0%,rgba(0,0,0,0) 68%);filter:blur(18px)"></div><div style="position:absolute;left:22px;top:394px;width:284px;height:284px;border-radius:50%;background:radial-gradient(circle,rgba(242,179,91,0.14) 0%,rgba(0,0,0,0) 68%);filter:blur(18px)"></div><div style="position:absolute;left:-107px;top:565px;width:317px;height:317px;border-radius:50%;background:radial-gradient(circle,rgba(21,112,106,0.45) 0%,rgba(0,0,0,0) 68%);filter:blur(18px)"></div><div style="position:absolute;left:129px;top:513px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,rgba(143,179,255,0.43675966815336964) 0%,rgba(143,179,255,0.15286588385367936) 55%,rgba(0,0,0,0) 72%);filter:blur(2.9px)"></div><div style="position:absolute;left:282px;top:63px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,rgba(143,179,255,0.22476213887359853) 0%,rgba(143,179,255,0.07866674860575948) 55%,rgba(0,0,0,0) 72%);filter:blur(3.4px)"></div><div style="position:absolute;left:361px;top:545px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle,rgba(246,193,119,0.3588453979534959) 0%,rgba(246,193,119,0.12559588928372356) 55%,rgba(0,0,0,0) 72%);filter:blur(3.9px)"></div><div style="position:absolute;left:276px;top:126px;width:31px;height:31px;border-radius:50%;background:radial-gradient(circle,rgba(246,193,119,0.4623859541787841) 0%,rgba(246,193,119,0.16183508396257443) 55%,rgba(0,0,0,0) 72%);filter:blur(2.9px)"></div><div style="position:absolute;left:41px;top:519px;width:36px;height:36px;border-radius:50%;background:radial-gradient(circle,rgba(124,242,182,0.4807283350437488) 0%,rgba(124,242,182,0.16825491726531205) 55%,rgba(0,0,0,0) 72%);filter:blur(2.4px)"></div><div style="position:absolute;left:349px;top:831px;width:19px;height:19px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.3107756967863515) 0%,rgba(255,255,255,0.10877149387522302) 55%,rgba(0,0,0,0) 72%);filter:blur(2.5px)"></div><div style="position:absolute;left:221px;top:381px;width:11px;height:11px;border-radius:50%;background:radial-gradient(circle,rgba(124,242,182,0.362944922570393) 0%,rgba(124,242,182,0.12703072289963754) 55%,rgba(0,0,0,0) 72%);filter:blur(3.7px)"></div><div style="position:absolute;left:244px;top:383px;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle,rgba(124,242,182,0.36562459415048343) 0%,rgba(124,242,182,0.1279686079526692) 55%,rgba(0,0,0,0) 72%);filter:blur(1.0px)"></div><div style="position:absolute;left:59px;top:570px;width:25px;height:25px;border-radius:50%;background:radial-gradient(circle,rgba(143,179,255,0.24842984189365427) 0%,rgba(143,179,255,0.08695044466277899) 55%,rgba(0,0,0,0) 72%);filter:blur(1.7px)"></div><div style="position:absolute;left:136px;top:65px;width:13px;height:13px;border-radius:50%;background:radial-gradient(circle,rgba(124,242,182,0.4316703016173474) 0%,rgba(124,242,182,0.15108460556607156) 55%,rgba(0,0,0,0) 72%);filter:blur(1.6px)"></div><div style="position:absolute;left:128px;top:674px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.2784346769250136) 0%,rgba(255,255,255,0.09745213692375476) 55%,rgba(0,0,0,0) 72%);filter:blur(2.0px)"></div><div style="position:absolute;left:48px;top:588px;width:31px;height:31px;border-radius:50%;background:radial-gradient(circle,rgba(246,193,119,0.3650704617080722) 0%,rgba(246,193,119,0.12777466159782527) 55%,rgba(0,0,0,0) 72%);filter:blur(1.8px)"></div></div><div style="position:relative;z-index:1;height:100%;box-sizing:border-box;padding:59px 20px 0;display:flex;flex-direction:column">
+<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center">
+<div role="img" aria-label="SnaPay" style="width:88px;height:88px;border-radius:19.7px;overflow:hidden;flex-shrink:0;position:relative;background:linear-gradient(160deg,#FFFFFF,#DDF3E6);box-shadow:0 2px 8px rgba(20,60,50,0.18),inset 0 1px 0 rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.35);box-sizing:border-box;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 400 400" width="65" height="65" style="display:block;flex-shrink:0" aria-hidden="true"><defs><linearGradient id="x67g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#3DDC84"></stop><stop offset="1" style="stop-color:#0F7A44"></stop></linearGradient><linearGradient id="x67r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:#FFFFFF"></stop><stop offset="1" style="stop-color:#E4F6EC"></stop></linearGradient><filter id="x67f" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="10"></feGaussianBlur></filter></defs><path d="M100 92 A32 32 0 0 1 132 60 H268 A32 32 0 0 1 300 92 V330 L287.5 348 L262.5 326 L237.5 348 L212.5 326 L187.5 348 L162.5 326 L137.5 348 L112.5 326 L100 330 Z" style="fill:rgba(15,122,68,0.25)" filter="url(#x67f)" transform="translate(0 14)"></path><path d="M100 92 A32 32 0 0 1 132 60 H268 A32 32 0 0 1 300 92 V330 L287.5 348 L262.5 326 L237.5 348 L212.5 326 L187.5 348 L162.5 326 L137.5 348 L112.5 326 L100 330 Z" style="fill:url(#x67r);stroke:#16804A;stroke-width:14;stroke-linejoin:round"></path><path d="M134 100 H230" style="stroke:#16804A;stroke-width:14;stroke-linecap:round;opacity:0.35"></path><rect x="134" y="222" width="40" height="58" rx="12" style="fill:url(#x67g)"></rect><rect x="180" y="180" width="40" height="100" rx="12" style="fill:url(#x67g)"></rect><rect x="226" y="138" width="40" height="142" rx="12" style="fill:url(#x67g)"></rect><circle cx="246" cy="104" r="30" style="fill:#C6F24E;stroke:#FFFFFF;stroke-width:8"></circle><path d="M234 106 L243 115 L259 97" style="fill:none;stroke:#16804A;stroke-width:8;stroke-linecap:round;stroke-linejoin:round"></path></svg></div>
+<div style="margin-top:6px"><div style="display:flex;flex-direction:column;align-items:center"><span dir="ltr" style="font-family:Rubik,sans-serif;font-size:34px;font-weight:700;letter-spacing:-0.7px;color:#F2F6F8;line-height:1">Sna<span style="color:#3DDC84">Pay</span></span></div></div>
+<div style="font-size:15px;color:#B3C0C8">הנתונים שלך נעולים עד שתזדהה</div>
+<div class="g" style="width:132px;height:132px;border-radius:32px;display:flex;align-items:center;justify-content:center;margin-top:28px;color:#3DDC84"><svg class="i" viewBox="0 0 24 24" width="64" height="64" aria-hidden="true" style="stroke-width:1.6"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9v1.5M15 9v1.5M12 9v4.5h-1M9 16c1.8 1.3 4.2 1.3 6 0"></path></svg></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;padding-bottom:34px">
+<a href="home-dark.dc.html" class="bp" style="width:100%;"><svg class="i" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9v1.5M15 9v1.5M12 9v4.5h-1M9 16c1.8 1.3 4.2 1.3 6 0"></path></svg><span>פתח עם Face ID</span></a>
+<button class="bt" style=""><span>הזנת קוד הגישה</span></button>
+</div></div></main>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":393,"height":852}}'>
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

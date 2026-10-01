@@ -18,14 +18,19 @@ struct LogInView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Spacing.l) {
-                VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text("טוב לראות אותך שוב")
-                        .font(.largeTitle.weight(.bold))
-                    Text("מתחברים וממשיכים מאיפה שהפסקת.")
-                        .foregroundStyle(.secondary)
+                VStack(spacing: Spacing.sm) {
+                    BrandTile()
+                    Text("ברוך שובך")
+                        .font(Typography.largeTitle)
+                        .foregroundStyle(Theme.textPrimary)
+                    Text("התחבר כדי לראות את ההוצאות שלך.")
+                        .font(.body)
+                        .foregroundStyle(Theme.textSecondary)
                 }
+                .frame(maxWidth: .infinity)
+                .multilineTextAlignment(.center)
 
-                GlassCard(padding: Spacing.l) {
+                GlassCard(padding: Spacing.gutter) {
                     VStack(alignment: .leading, spacing: Spacing.m) {
                         GlassTextField(title: "אימייל", text: $email, kind: .email,
                                        issue: validation.email, identifier: "login.email")
@@ -33,14 +38,15 @@ struct LogInView: View {
                             GlassTextField(title: "סיסמה", text: $password, kind: .password,
                                            issue: validation.password, identifier: "login.password")
                             Button("שכחת סיסמה?") { isShowingForgotPassword = true }
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(Theme.brand)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Theme.brandInk)
                                 .frame(minHeight: 44)
                                 .accessibilityIdentifier("login.forgot")
                         }
-                        TermsConsentRow(isOn: $acceptedTerms, issue: validation.terms)
                     }
                 }
+
+                TermsConsentRow(isOn: $acceptedTerms, issue: validation.terms)
 
                 if let failure {
                     ErrorBanner(message: failure.message)
@@ -55,20 +61,22 @@ struct LogInView: View {
 
                 HStack(spacing: Spacing.xs) {
                     Text("אין לך חשבון עדיין?")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                     Button("לחץ להרשמה", action: onSwitchToSignUp)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(Theme.brand)
+                        .fontWeight(.bold)
+                        .foregroundStyle(Theme.brandInk)
                         .accessibilityIdentifier("login.toSignUp")
                 }
                 .font(.subheadline)
                 .frame(maxWidth: .infinity)
             }
-            .padding(Spacing.m)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.l)
         }
         .scrollDismissesKeyboard(.interactively)
         .background { AppBackground() }
         .navigationBarTitleDisplayMode(.inline)
+        .designBackButton()
         .sheet(isPresented: $isShowingForgotPassword) {
             ForgotPasswordSheet(initialEmail: email)
         }

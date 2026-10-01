@@ -25,36 +25,37 @@ public struct CategoryDraft: Identifiable, Hashable, Codable, Sendable {
 
 public enum DefaultCategories {
     /// The palette offered in the category editor. Each is readable as a tint in light and dark.
+    /// The design's 16 category colors (docs/design/claude-design/design-tokens).
     public static let palette: [String] = [
-        "#2FB36D", "#3B82F6", "#F59E0B", "#EF6A5A", "#8B5CF6", "#14B8A6",
-        "#EC4899", "#84CC16", "#F97316", "#0EA5E9", "#A16207", "#64748B",
+        "#FF8A3D", "#2FB36D", "#E056B0", "#3B82F6", "#14B8A6", "#8B5CF6", "#F5B301", "#06B6D4",
+        "#EF4444", "#A855F7", "#0EA5E9", "#EC4899", "#F59E0B", "#B7791F", "#6366F1", "#A0522D",
     ]
 
     /// Expense categories offered in onboarding, in display order. All preselected.
     public static let expenses: [CategoryDraft] = [
-        CategoryDraft(name: "אוכל ומסעדות", emoji: "🍔", colorHex: "#EF6A5A"),
+        CategoryDraft(name: "אוכל ומסעדות", emoji: "🍔", colorHex: "#FF8A3D"),
         CategoryDraft(name: "סופר", emoji: "🛒", colorHex: "#2FB36D"),
-        CategoryDraft(name: "קניות", emoji: "🛍️", colorHex: "#8B5CF6"),
+        CategoryDraft(name: "קניות", emoji: "🛍️", colorHex: "#E056B0"),
         CategoryDraft(name: "רכב ודלק", emoji: "🚗", colorHex: "#3B82F6"),
-        CategoryDraft(name: "תחבורה ציבורית", emoji: "🚌", colorHex: "#0EA5E9"),
-        CategoryDraft(name: "דיור", emoji: "🏠", colorHex: "#F59E0B"),
-        CategoryDraft(name: "חשבונות", emoji: "💡", colorHex: "#A16207"),
-        CategoryDraft(name: "תקשורת", emoji: "📱", colorHex: "#64748B"),
-        CategoryDraft(name: "בריאות", emoji: "💊", colorHex: "#14B8A6"),
-        CategoryDraft(name: "בילויים", emoji: "🎬", colorHex: "#EC4899"),
+        CategoryDraft(name: "תחבורה ציבורית", emoji: "🚌", colorHex: "#14B8A6"),
+        CategoryDraft(name: "דיור", emoji: "🏠", colorHex: "#8B5CF6"),
+        CategoryDraft(name: "חשבונות", emoji: "💡", colorHex: "#F5B301"),
+        CategoryDraft(name: "תקשורת", emoji: "📱", colorHex: "#06B6D4"),
+        CategoryDraft(name: "בריאות", emoji: "💊", colorHex: "#EF4444"),
+        CategoryDraft(name: "בילויים", emoji: "🎬", colorHex: "#A855F7"),
         CategoryDraft(name: "טיולים", emoji: "✈️", colorHex: "#0EA5E9"),
-        CategoryDraft(name: "מתנות", emoji: "🎁", colorHex: "#F97316"),
-        CategoryDraft(name: "ילדים", emoji: "👶", colorHex: "#84CC16"),
-        CategoryDraft(name: "חיות מחמד", emoji: "🐾", colorHex: "#A16207"),
-        CategoryDraft(name: "לימודים", emoji: "📚", colorHex: "#3B82F6"),
-        CategoryDraft(name: "קפה", emoji: "☕", colorHex: "#A16207"),
+        CategoryDraft(name: "מתנות", emoji: "🎁", colorHex: "#EC4899"),
+        CategoryDraft(name: "ילדים", emoji: "👶", colorHex: "#F59E0B"),
+        CategoryDraft(name: "חיות מחמד", emoji: "🐾", colorHex: "#B7791F"),
+        CategoryDraft(name: "לימודים", emoji: "📚", colorHex: "#6366F1"),
+        CategoryDraft(name: "קפה", emoji: "☕", colorHex: "#A0522D"),
     ]
 
     /// Income categories, created for every user alongside the chosen expense categories.
     public static let income: [CategoryDraft] = [
         CategoryDraft(name: "משכורת", emoji: "💼", colorHex: "#2FB36D", kind: .income),
-        CategoryDraft(name: "מתנה", emoji: "🎁", colorHex: "#F97316", kind: .income),
-        CategoryDraft(name: "הכנסה אחרת", emoji: "💰", colorHex: "#84CC16", kind: .income),
+        CategoryDraft(name: "מתנה", emoji: "🎁", colorHex: "#EC4899", kind: .income),
+        CategoryDraft(name: "הכנסה אחרת", emoji: "💰", colorHex: "#F5B301", kind: .income),
     ]
 
     /// Emoji grid for the category editor.

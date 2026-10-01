@@ -9,44 +9,43 @@ struct NotificationPermissionView: View {
         VStack(spacing: Spacing.l) {
             Spacer()
 
-            ZStack {
-                Color.clear
-                    .frame(width: 220, height: 120)
-                    .glassEffect(.regular, in: .rect(cornerRadius: 28))
-                    .rotationEffect(.degrees(-4))
-                    .offset(y: 18)
-                GlassCard {
-                    HStack(spacing: Spacing.m) {
-                        Image(systemName: "bell.badge.fill")
-                            .font(.title)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(Theme.expense, Theme.brand)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("דנה הוסיפה הוצאה")
-                                .font(.subheadline.weight(.semibold))
-                            Text("₪48.90 · אוכל ומסעדות")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                        }
+            VStack(spacing: Spacing.l) {
+                Image(systemName: "bell")
+                    .font(.system(size: 44, weight: .medium))
+                    .foregroundStyle(Theme.brand)
+                    .frame(width: 112, height: 112)
+                    .glassSurface(radius: 32)
+                    .overlay(alignment: .topLeading) {
+                        Circle()
+                            .fill(Theme.destructive)
+                            .frame(width: 18, height: 18)
+                            .overlay(Circle().strokeBorder(.white, lineWidth: 2))
+                            .offset(x: 18, y: 16)
                     }
+                VStack(spacing: Spacing.sm) {
+                    SampleNotification(title: "מיכל הוסיפה הוצאה", detail: "רמי לוי · \(Money.string(Decimal(string: "212.40")!, currency: "ILS"))")
+                        .frame(width: 300)
+                    SampleNotification(title: "מתקרבים לתקציב", detail: "קפה: 85% מהתקציב החודשי")
+                        .frame(width: 282)
+                        .opacity(0.85)
                 }
-                .frame(width: 280)
             }
             .accessibilityHidden(true)
 
             VStack(spacing: Spacing.s) {
                 Text("נשארים מעודכנים")
-                    .font(.largeTitle.weight(.bold))
+                    .font(Typography.largeTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 Text("נעדכן אותך כשבן משפחה מוסיף הוצאה, כשמתקרבים לתקציב, וכשהסיכום החודשי מוכן.")
                     .font(.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
             }
             .padding(.horizontal, Spacing.m)
 
             Spacer()
 
-            VStack(spacing: Spacing.m) {
+            VStack(spacing: Spacing.s) {
                 Button {
                     finish(allow: true)
                 } label: {
@@ -58,13 +57,12 @@ struct NotificationPermissionView: View {
                 Button("אולי אחר כך") {
                     finish(allow: false)
                 }
-                .font(.body.weight(.medium))
-                .foregroundStyle(.secondary)
-                .frame(minHeight: 44)
+                .buttonStyle(.text)
                 .accessibilityIdentifier("notifications.later")
             }
         }
-        .padding(Spacing.m)
+        .padding(.horizontal, Spacing.gutter)
+        .padding(.bottom, Spacing.s)
         .disabled(isWorking)
     }
 
@@ -74,5 +72,35 @@ struct NotificationPermissionView: View {
             await app.finishNotificationPrompt(allow: allow)
             isWorking = false
         }
+    }
+}
+
+/// A lock-screen-style notification for the illustration.
+private struct SampleNotification: View {
+    let title: String
+    let detail: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: Spacing.sm) {
+            BrandTile(size: 36)
+            VStack(alignment: .leading, spacing: 1) {
+                HStack {
+                    Text("SnaPay")
+                        .font(.subheadline.weight(.bold))
+                    Spacer()
+                    Text("עכשיו")
+                        .font(.caption)
+                        .foregroundStyle(Theme.textTertiary)
+                }
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            .foregroundStyle(Theme.textPrimary)
+        }
+        .padding(Spacing.sm)
+        .glassSurface(radius: 22)
     }
 }

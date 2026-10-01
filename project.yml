@@ -17,13 +17,16 @@ settings:
     CODE_SIGN_STYLE: Automatic
     TARGETED_DEVICE_FAMILY: "1"
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    # Colors come from Theme (Color("name")); generated symbols like Color.fill would clash with SwiftUI.
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
+    ASSETCATALOG_COMPILER_GENERATE_ASSET_SYMBOLS: NO
 
 packages:
   SnaPayCore:
     path: Packages/SnaPayCore
-  Supabase:
-    url: https://github.com/supabase/supabase-swift
-    from: "2.20.0"
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "12.0.0"
 
 targets:
   SnaPay:
@@ -36,14 +39,18 @@ targets:
       Release: Config/App.xcconfig
     dependencies:
       - package: SnaPayCore
-      - package: Supabase
-        product: Supabase
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
       - target: SnaPayWidget
     entitlements:
       path: SnaPay/SnaPay.entitlements
       properties:
         com.apple.security.application-groups:
           - group.com.bignono97.snapay
+        # Partner notifications: the APNs sandbox in Debug, production in Release (TestFlight).
+        aps-environment: $(APS_ENVIRONMENT)
     info:
       path: SnaPay/Info.plist
       properties:
@@ -61,13 +68,24 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.bignono97.snapay
             CFBundleURLSchemes: [snapay]
-        SUPABASE_URL: $(SUPABASE_URL)
-        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        FIREBASE_API_KEY: $(FIREBASE_API_KEY)
+        FIREBASE_PROJECT_ID: $(FIREBASE_PROJECT_ID)
+        FIREBASE_APP_ID: $(FIREBASE_APP_ID)
+        FIREBASE_SENDER_ID: $(FIREBASE_SENDER_ID)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
+        # Firebase's Objective-C categories, linked through Swift Package Manager.
+        OTHER_LDFLAGS: $(inherited) -ObjC
+        # Empty except in the TestFlight workflow, which signs manually.
+        PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_APP_PROFILE)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
 
   SnaPayWidget:
     type: app-extension
@@ -91,6 +109,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
+        PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_WIDGET_PROFILE)
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
   SnaPayUITests:

@@ -1,0 +1,77 @@
+name: Firebase
+
+# Firestore security rules and indexes: tested on the emulator for every change to them, and
+# deployed on merges to main.
+# Deploying needs the secret FIREBASE_SERVICE_ACCOUNT (a service account key JSON from the
+# Firebase console) and the variable FIREBASE_PROJECT_ID; until they exist the deploy is skipped.
+
+on:
+  pull_request:
+    paths: ["firebase/**", "firebase.json", ".github/workflows/firebase.yml"]
+  push:
+    branches: [main]
+    paths: ["firebase/**", "firebase.json", ".github/workflows/firebase.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: firebase-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+
+      - name: Test security rules on the emulator
+        run: npm test
+
+  deploy:
+    needs: rules
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Skip until the Firebase project is configured
+        if: env.FIREBASE_SERVICE_ACCOUNT == '' || env.FIREBASE_PROJECT_ID == ''
+        run: echo "Firebase secrets are not set yet; skipping deploy."
+
+      - uses: actions/checkout@v5
+        if: env.FIREBASE_SERVICE_ACCOUNT != '' && env.FIREBASE_PROJECT_ID != ''
+
+      - uses: actions/setup-node@v5
+        if: env.FIREBASE_SERVICE_ACCOUNT != '' && env.FIREBASE_PROJECT_ID != ''
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: firebase/package-lock.json
+
+      - name: Deploy rules and indexes
+        if: env.FIREBASE_SERVICE_ACCOUNT != '' && env.FIREBASE_PROJECT_ID != ''
+        run: |
+          npm ci --prefix firebase
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/service-account.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/service-account.json"
+          firebase/node_modules/.bin/firebase deploy --only firestore:rules,firestore:indexes \
+            --project "$FIREBASE_PROJECT_ID" --non-interactive
+          rm -f "$RUNNER_TEMP/service-account.json"
