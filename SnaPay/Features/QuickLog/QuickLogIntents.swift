@@ -6,7 +6,8 @@ import SwiftUI
 // The intent saves the payment to the shared inbox and shows an interactive card: one tap on a
 // category runs `ChooseCategoryIntent`, and the system redraws the card.
 //
-// The intents run on the main actor (the target's default), like `QuickLogService`.
+// `perform()` runs off the main actor (the AppIntent requirement); the work hops to
+// `QuickLogService` on the main actor.
 
 struct LogPaymentIntent: AppIntent {
     static let title: LocalizedStringResource = "תיעוד תשלום"
@@ -31,7 +32,7 @@ struct LogPaymentIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ShowsSnippetIntent {
-        let key = QuickLogService.capture(amountText: amount, merchant: merchant, card: card)
+        let key = await QuickLogService.capture(amountText: amount, merchant: merchant, card: card)
         return .result(snippetIntent: QuickLogSnippetIntent(key: key))
     }
 }
@@ -52,7 +53,7 @@ struct QuickLogSnippetIntent: SnippetIntent {
     }
 
     func perform() async throws -> some IntentResult & ShowsSnippetView {
-        let model = QuickLogService.card(for: key)
+        let model = await QuickLogService.card(for: key)
         return .result(view: QuickLogCardView(model: model))
     }
 }
