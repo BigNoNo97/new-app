@@ -30,8 +30,8 @@
 - [x] ממך: משתני Firebase ב-GitHub (`FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID`, `FIREBASE_SENDER_ID`) והסוד `FIREBASE_SERVICE_ACCOUNT` לפריסת החוקים
 - [x] מיזוג PR 4 באישורך (1.10)
 - [x] הצינור ממיר את ה-`.p12` להצפנה ש-macOS קורא, ומסיר ירידת שורה מהסיסמה (PR 5)
-- [ ] ממך: הסיסמה ב-`DIST_CERT_PASSWORD` לא פותחת את `DIST_CERT_P12` (נבדק ב-OpenSSL בשתי הרצות). לעדכן את שני הסודות מהמחשב שלך, ואז להריץ שוב את ההעלאה
-- [ ] ממך: לחשבון השירות `firebase-adminsdk` ב-Google Cloud IAM להוסיף `Service Usage Consumer`, ‏`Firebase Rules Admin` ו-`Cloud Datastore Index Admin` (הפריסה נכשלה ב-403), ואז להריץ מחדש את הפריסה
+- [x] ממך: `DIST_CERT_P12` ו-`DIST_CERT_PASSWORD` עודכנו מקובץ `.p12` חדש (2.10), והתעודה מותקנת בצינור
+- [x] ממך: לחשבון השירות `firebase-adminsdk` ב-Google Cloud IAM נוספו `Service Usage Consumer`, ‏`Firebase Rules Admin` ו-`Cloud Datastore Index Admin`. חוקי האבטחה והאינדקסים נפרסו (2.10)
 - [ ] לחדש את התעודה והפרופילים עד 2027-10-01. התעודה משותפת ל-Gym Tracker, ולכן ביטול שלה שובר את שתי האפליקציות
 - [ ] התראה לשותפים על הוצאה חדשה: צריך שרת קטן (למשל Cloudflare Workers, חינם) שקורא את הטוקנים מ-Firestore ושולח דרך APNs, ומפתח APNs ממך
 - [x] לבדוק מכסת דקות macOS ב-GitHub Actions: הריפו נשאר פרטי, וטסטי הלוגיקה עברו ללינוקס
