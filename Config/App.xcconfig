@@ -1,7 +1,10 @@
-// Build settings for the app target. Supabase values are empty by default; CI writes
-// Config/Secrets.xcconfig from the repository variables SUPABASE_URL and SUPABASE_ANON_KEY
-// (that file is git-ignored). Without them the app shows "the server isn't configured yet".
-SUPABASE_URL =
-SUPABASE_ANON_KEY =
+// Build settings for the app target. Firebase values are empty by default; CI writes
+// Config/Secrets.xcconfig from the repository variables FIREBASE_API_KEY, FIREBASE_PROJECT_ID,
+// FIREBASE_APP_ID and FIREBASE_SENDER_ID (that file is git-ignored). Without them the app shows
+// "the server isn't configured yet".
+FIREBASE_API_KEY =
+FIREBASE_PROJECT_ID =
+FIREBASE_APP_ID =
+FIREBASE_SENDER_ID =
 
 #include? "Secrets.xcconfig"

@@ -8,10 +8,10 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["**.md", "docs/**", "supabase/**", "signing/**", ".github/workflows/testflight.yml"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "supabase/**", "signing/**", ".github/workflows/testflight.yml"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -32,9 +32,40 @@ jobs:
       - name: Test SnaPayCore
         run: swift test --package-path Packages/SnaPayCore
 
+  # paths-ignore above looks at the whole pull request, so on its own a docs-only push to a PR
+  # that touches the app would still rebuild it. This looks at just the new push.
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - id: diff
+        env:
+          ACTION: ${{ github.event.action }}
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Opening, reopening, marking ready and manual runs always build.
+          if [ "$ACTION" != "synchronize" ] || [ -z "$BEFORE" ] || ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed=$(git diff --name-only "$BEFORE" "$AFTER")
+          echo "$changed"
+          if echo "$changed" | grep -qvE '(\.md$|^docs/|^signing/|^firebase/|^\.github/workflows/(testflight|firebase)\.yml$)'; then
+            echo "app=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "app=false" >> "$GITHUB_OUTPUT"
+          fi
+
   ios:
-    needs: core-tests
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    needs: [core-tests, changes]
+    if: needs.changes.outputs.app == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false))
     runs-on: macos-26
     timeout-minutes: 60
     permissions:

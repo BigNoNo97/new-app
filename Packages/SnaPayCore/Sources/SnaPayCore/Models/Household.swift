@@ -1,6 +1,6 @@
 import Foundation
 
-/// A row of `public.households`.
+/// A household as the screens use it (see `HouseholdDocument` for the stored form).
 public struct HouseholdRow: Codable, Equatable, Sendable {
     public var id: UUID
     public var name: String
@@ -18,7 +18,7 @@ public struct HouseholdRow: Codable, Equatable, Sendable {
     }
 }
 
-/// An invite someone sent to my email (`public.my_pending_invites()`).
+/// An invite someone sent to my email.
 public struct PendingInvite: Codable, Identifiable, Equatable, Sendable {
     public var id: UUID
     public var householdID: UUID
@@ -42,7 +42,7 @@ public struct PendingInvite: Codable, Identifiable, Equatable, Sendable {
     }
 }
 
-/// An invite my household sent (`public.household_invites`).
+/// An invite my household sent.
 public struct HouseholdInviteRow: Codable, Identifiable, Equatable, Sendable {
     public enum Status: String, Codable, Sendable {
         case pending, accepted, declined, revoked
@@ -70,7 +70,7 @@ public struct HouseholdInviteRow: Codable, Identifiable, Equatable, Sendable {
     }
 }
 
-/// A partial update of `public.profiles`: only the fields that are set are sent.
+/// A partial update of the profile: only the fields that are set are sent.
 public struct ProfileChanges: Encodable, Equatable, Sendable {
     public var fullName: String?
     public var monthStartDay: Int?

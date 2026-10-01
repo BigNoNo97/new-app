@@ -24,9 +24,9 @@ settings:
 packages:
   SnaPayCore:
     path: Packages/SnaPayCore
-  Supabase:
-    url: https://github.com/supabase/supabase-swift
-    from: "2.20.0"
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "12.0.0"
 
 targets:
   SnaPay:
@@ -39,8 +39,10 @@ targets:
       Release: Config/App.xcconfig
     dependencies:
       - package: SnaPayCore
-      - package: Supabase
-        product: Supabase
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
       - target: SnaPayWidget
     entitlements:
       path: SnaPay/SnaPay.entitlements
@@ -66,11 +68,15 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.bignono97.snapay
             CFBundleURLSchemes: [snapay]
-        SUPABASE_URL: $(SUPABASE_URL)
-        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        FIREBASE_API_KEY: $(FIREBASE_API_KEY)
+        FIREBASE_PROJECT_ID: $(FIREBASE_PROJECT_ID)
+        FIREBASE_APP_ID: $(FIREBASE_APP_ID)
+        FIREBASE_SENDER_ID: $(FIREBASE_SENDER_ID)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
+        # Firebase's Objective-C categories, linked through Swift Package Manager.
+        OTHER_LDFLAGS: $(inherited) -ObjC
         # Empty except in the TestFlight workflow, which signs manually.
         PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_APP_PROFILE)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon

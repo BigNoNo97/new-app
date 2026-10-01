@@ -2,7 +2,8 @@ name: TestFlight
 
 # Builds, signs and uploads every merge to main to TestFlight.
 # Stays off until the repository variable TESTFLIGHT_ENABLED is "true" and these secrets exist.
-# Repository variables SUPABASE_URL and SUPABASE_ANON_KEY point the build at the server.
+# Repository variables FIREBASE_API_KEY, FIREBASE_PROJECT_ID, FIREBASE_APP_ID and
+# FIREBASE_SENDER_ID (from the Firebase console's GoogleService-Info.plist) point the build at the server.
 #
 # Signing is manual (the team has no App Store Connect API access):
 #   signing/*.mobileprovision – App Store profiles for com.bignono97.snapay and its widget
@@ -15,7 +16,7 @@ name: TestFlight
 on:
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "supabase/**"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**"]
   workflow_dispatch:
 
 concurrency:
@@ -79,15 +80,18 @@ jobs:
             esac
           done
 
-      - name: Write Supabase settings
+      - name: Write Firebase settings
         env:
-          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+          FIREBASE_API_KEY: ${{ vars.FIREBASE_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ vars.FIREBASE_PROJECT_ID }}
+          FIREBASE_APP_ID: ${{ vars.FIREBASE_APP_ID }}
+          FIREBASE_SENDER_ID: ${{ vars.FIREBASE_SENDER_ID }}
         run: |
-          # In .xcconfig files "//" starts a comment, so the URL's slashes are split with $().
           {
-            echo "SUPABASE_URL = ${SUPABASE_URL/\/\//\/\$()\/}"
-            echo "SUPABASE_ANON_KEY = $SUPABASE_ANON_KEY"
+            echo "FIREBASE_API_KEY = $FIREBASE_API_KEY"
+            echo "FIREBASE_PROJECT_ID = $FIREBASE_PROJECT_ID"
+            echo "FIREBASE_APP_ID = $FIREBASE_APP_ID"
+            echo "FIREBASE_SENDER_ID = $FIREBASE_SENDER_ID"
           } > Config/Secrets.xcconfig
 
       - name: Generate Xcode project

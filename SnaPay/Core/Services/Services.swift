@@ -29,6 +29,8 @@ enum HouseholdFailure: Error, Equatable {
     case inviteNotFound
     case alreadyMember
     case notOwner
+    /// Joining needs a confirmed email address; a new confirmation email was sent.
+    case emailNotVerified
     case network
     case unknown
 }
@@ -65,7 +67,7 @@ protocol AccountRepository: AnyObject {
     func registerDeviceToken(_ token: String, environment: String) async throws
     func unregisterDeviceToken(_ token: String) async throws
     /// Permanently deletes the account and everything the user entered.
-    func deleteAccount() async throws
+    func deleteAccount(password: String) async throws
 }
 
 /// Household data: categories, members, transactions, recurring rules, exchange rates and the

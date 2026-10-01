@@ -42,14 +42,14 @@ final class AppState {
         self.data = data
     }
 
-    /// The services the app runs with: Supabase, or in-memory for UI tests.
+    /// The services the app runs with: Firebase, or in-memory for UI tests.
     static func live() -> AppState {
         if AppConfig.isUITesting {
             prepareQuickLogForUITests()
             let services = InMemoryServices()
             return AppState(auth: services, account: services, data: services)
         }
-        guard let services = SupabaseServices.shared else {
+        guard let services = FirebaseServices.shared else {
             let services = InMemoryServices()
             let state = AppState(auth: services, account: services, data: services)
             state.route = .serverNotConfigured
@@ -164,10 +164,13 @@ final class AppState {
 
     var currentEmail: String? { auth.currentEmail }
 
-    /// Permanently deletes the account on the server, then clears this device.
-    func deleteAccount() async throws {
+    /// Permanently deletes the account on the server, then clears this device. The password
+    /// confirms it's really the user (the server asks for a fresh sign-in).
+    func deleteAccount(password: String) async throws {
         do {
-            try await account.deleteAccount()
+            try await account.deleteAccount(password: password)
+        } catch let failure as AuthFailure {
+            throw failure
         } catch {
             throw error is URLError ? AuthFailure.network : AuthFailure.unknown
         }

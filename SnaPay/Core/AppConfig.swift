@@ -2,21 +2,20 @@ import Foundation
 
 /// Build-time configuration and launch flags.
 enum AppConfig {
-    /// Values injected into Info.plist from Config/Secrets.xcconfig (written by CI from
-    /// repository variables). Empty until the Supabase project exists.
-    static let supabaseURL: URL? = {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,
-              value.hasPrefix("https://") else { return nil }
-        return URL(string: value)
+    /// Firebase settings, injected into Info.plist from Config/Secrets.xcconfig (written by CI
+    /// from repository variables). Nil until the Firebase project exists.
+    nonisolated static let firebase: FirebaseSettings? = {
+        func value(_ key: String) -> String? {
+            guard let value = Bundle.main.object(forInfoDictionaryKey: key) as? String,
+                  !value.isEmpty, !value.hasPrefix("$(") else { return nil }
+            return value
+        }
+        guard let apiKey = value("FIREBASE_API_KEY"), let projectID = value("FIREBASE_PROJECT_ID"),
+              let appID = value("FIREBASE_APP_ID"), let senderID = value("FIREBASE_SENDER_ID") else { return nil }
+        return FirebaseSettings(apiKey: apiKey, projectID: projectID, appID: appID, senderID: senderID)
     }()
 
-    static let supabaseAnonKey: String? = {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_ANON_KEY") as? String,
-              !value.isEmpty, !value.hasPrefix("$(") else { return nil }
-        return value
-    }()
-
-    static var isServerConfigured: Bool { supabaseURL != nil && supabaseAnonKey != nil }
+    static var isServerConfigured: Bool { firebase != nil }
 
     /// UI tests run the app against in-memory services.
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
@@ -33,4 +32,12 @@ enum AppConfig {
     // Published with the launch stage (GitHub Pages).
     static let termsURL = URL(string: "https://bignono97.github.io/new-app/terms")!
     static let privacyURL = URL(string: "https://bignono97.github.io/new-app/privacy")!
+}
+
+/// The values from the Firebase console's GoogleService-Info.plist that the app needs.
+nonisolated struct FirebaseSettings: Sendable {
+    let apiKey: String
+    let projectID: String
+    let appID: String
+    let senderID: String
 }

@@ -28,7 +28,7 @@ struct ForgotPasswordSheet: View {
                     Text("שלחנו לך מייל")
                         .font(Typography.title1)
                         .foregroundStyle(Theme.textPrimary)
-                    Text("שלחנו קישור לאיפוס אל **\(email)**. לחצו עליו כדי לבחור סיסמה חדשה.")
+                    Text("שלחנו קישור לאיפוס אל **\(email)**. לחצו עליו, בחרו סיסמה חדשה, וחזרו לכאן כדי להתחבר איתה.")
                         .font(.body)
                         .foregroundStyle(Theme.textSecondary)
                         .multilineTextAlignment(.center)

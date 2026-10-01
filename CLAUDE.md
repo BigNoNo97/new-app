@@ -33,16 +33,17 @@
 - `SnaPay/DesignSystem/` — צבעים, מרווחים ורכיבי זכוכית. כל צבע באפליקציה מגיע מ-`Theme`.
 - `SnaPayWidget/` — הווידג'ט.
 - `Packages/SnaPayCore/` — לוגיקה עסקית בלי ממשק: המרת מטבע, חודש פיננסי, חיובים מחזוריים, הצעת קטגוריה וקריאת קבצי עו"ש. כל לוגיקה שאפשר לבדוק בלי ממשק נכנסת לכאן, עם טסטים.
-- `SnaPay/App/AppState.swift` — מצב האפליקציה: איזה מסך מוצג וזרימות החשבון. השירותים (`SnaPay/Core/Services/`) מוגדרים כפרוטוקולים, עם מימוש Supabase ומימוש בזיכרון לטסטי ממשק (`-uiTesting`).
+- `SnaPay/App/AppState.swift` — מצב האפליקציה: איזה מסך מוצג וזרימות החשבון. השירותים (`SnaPay/Core/Services/`) מוגדרים כפרוטוקולים, עם מימוש Firebase (`FirebaseServices.swift`) ומימוש בזיכרון לטסטי ממשק (`-uiTesting`).
 - `SnaPay/Features/QuickLog/` — תיעוד בקליק: פעולות קיצורים (`LogPaymentIntent`, חלונית `SnippetIntent`), מסך הדרכה וכרטיסי מסך הבית. הפעולה שומרת תשלומים לתיבת קליטה משותפת ב-App Group (`SnaPay/Core/QuickLog/QuickLogStorage.swift`), והמחסן הופך אותם לתנועות.
-- `SnaPay/Features/Settings/` — מסך ההגדרות והחשבון המשותף. משתמש שייך למשק בית אחד: הצטרפות, יציאה והסרה רצות בפונקציות SQL (`supabase/migrations/20261002000000_family.sql`), וההוצאות של המשתמש עוברות איתו.
-- `SnaPay/Core/Services/PushNotifications.swift` — רישום להתראות. הפונקציה `notify-partners` שולחת לשותפים התראה על תנועה חדשה.
+- `SnaPay/Features/Settings/` — מסך ההגדרות והחשבון המשותף. משתמש שייך למשק בית אחד. הצטרפות, יציאה והסרה רצות באפליקציה עצמה (`FirebaseServices`), כי בחבילה החינמית של Firebase אין פונקציות שרת, וההוצאות של המשתמש עוברות איתו. שותף שהוסר מסומן `removed`, והאפליקציה שלו מעבירה את הנתונים שלו בפתיחה הבאה.
+- `SnaPay/Core/Services/PushNotifications.swift` — רישום להתראות. הטוקנים נשמרים ב-Firestore, אבל עוד אין שרת ששולח לשותפים התראה על תנועה חדשה (ראו `TASKS.md`).
 - טסטי ממשק עם שותפה מדומה: `invited@example.com` מקבל הזמנה, ו-`shared@example.com` כבר בחשבון משותף.
 - `SnaPay/Core/Store/TransactionStore.swift` — נתוני משק הבית באפליקציה: עותק מקומי בקובץ ב-App Group, תור שינויים (outbox) לעבודה בלי רשת, ויצירת חיובים קבועים בכל פתיחה.
 - `SnaPayUITests/` — טסטי ממשק. בכל ריצה ב-CI נשמרים צילומי מסך בבהיר ובכהה כקובץ `screenshots` של הבנייה.
-- `supabase/` — צד השרת: מיגרציות (`migrations/`), טסטי pgTAP להרשאות (`tests/`), פונקציות שרת (`functions/`) ותבניות מייל בעברית (`templates/`).
+- `firebase/` — צד השרת ב-Firebase (חבילה חינמית: Auth ו-Firestore): חוקי האבטחה (`firestore.rules`), אינדקסים, וטסטים לחוקים מול האמולטור (`tests/`). מבנה המסמכים מתואר בראש קובץ החוקים, והמסמכים הם ה-JSON של המודלים (`FirestoreJSON` ב-SnaPayCore).
 - צילומי המסך האחרונים מה-CI נמצאים גם בענף `ci-screenshots`. אפשר למשוך אותם עם `git fetch origin ci-screenshots` ולפתוח את הקבצים לבדיקה ויזואלית.
-- `Config/App.xcconfig` — כתובת ומפתח Supabase. הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
+- `Config/App.xcconfig` — הגדרות Firebase (ארבעה ערכים ציבוריים מ-`GoogleService-Info.plist`). הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
+- `signing/` — פרופילי App Store לחתימה ידנית ב-`testflight.yml`. התעודה והמפתח נמצאים רק בסודות של GitHub.
 - `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
 - `docs/design/claude-design/` — העיצוב מ-Claude Design, והוא מקור האמת לכל מסך. בתיקייה:
   - `screens/<id>-light.jpg` ו-`screens/<id>-dark.jpg`: צילום של כל מסך בבהיר ובכהה.
@@ -56,11 +57,10 @@
 
 אין Mac בסביבת הפיתוח, ובסביבת הענן אין Swift. הקמפול והטסטים רצים ב-GitHub Actions על macOS. פקודות מקבילות על Mac:
 
-בסביבת הענן אפשר להריץ את טסטי מסד הנתונים על Postgres מקומי, בלי Docker:
+בסביבת הענן אפשר להריץ את טסטי חוקי האבטחה של Firestore מול האמולטור (צריך Node ו-Java):
 
 ```
-apt-get install -y postgresql-16-pgtap   # פעם אחת
-scripts/db-test-local.sh
+cd firebase && npm ci && npm test
 ```
 
 פקודות לבדיקת האפליקציה על Mac:
@@ -75,7 +75,8 @@ xcodebuild test -project SnaPay.xcodeproj -scheme SnaPay -destination 'platform=
   - טסטי `SnaPayCore` רצים על לינוקס בכל שינוי.
   - הבנייה על macOS, טסטי הממשק וצילומי המסך רצים רק ב-PR שאינו טיוטה, או בהפעלה ידנית.
   - אופן העבודה: פותחים PR כטיוטה, בודקים מקומית ככל האפשר, ומעבירים ל-"Ready for review" רק בסוף שלב. תיקונים אחרי זה נאספים לדחיפה אחת.
-- כל שינוי במבנה הנתונים הוא מיגרציה חדשה ב-`supabase/migrations/`, עם טסט הרשאות מתאים ב-`supabase/tests/`.
+- כל שינוי במבנה הנתונים או בהרשאות עובר ב-`firebase/firestore.rules`, עם טסט מתאים ב-`firebase/tests/`. שאילתה חדשה עם מיון וסינון צריכה אינדקס ב-`firebase/firestore.indexes.json`.
+- כתיבות לשרת נעשות באצוות קטנות (`FirebaseServices.batchSize`), כי חוקי האבטחה קוראים עד שני מסמכים לכל כתיבה, ויש מגבלה לכל בקשה.
 
 ### כללי עיצוב (חובה)
 

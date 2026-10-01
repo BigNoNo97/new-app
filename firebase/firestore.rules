@@ -1,0 +1,207 @@
+rules_version = '2';
+
+// SnaPay's data model (field names match the app's models):
+//   user_ids/{userID}            { uid }                 the app's user id → Firebase Auth uid
+//   profiles/{uid}               the user's profile; device_tokens/{token} below it
+//   households/{householdID}     { id, name, is_shared, owner_uid, members: { uid: { user_id, full_name, joined_at, removed? } } }
+//   categories/{id}              household_id
+//   transactions/{id}            household_id, user_id
+//   recurring_rules/{id}         household_id, user_id
+//   merchant_map/{id}            household_id
+//   invites/{householdID}_{email}
+//
+// Everyone in a household reads all of its data; each member writes only their own
+// transactions and recurring charges. Joining needs a pending invite to the user's verified
+// email. A member the owner removes is flagged `removed`: they keep reading the household's
+// categories (to take theirs along) and their own rows, and their app moves them out.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function householdPath(householdID) {
+      return /databases/$(database)/documents/households/$(householdID);
+    }
+
+    // Listed in the household, removed or not.
+    function isListed(householdID) {
+      return signedIn() && request.auth.uid in get(householdPath(householdID)).data.members;
+    }
+
+    function isActiveMember(householdID) {
+      let members = get(householdPath(householdID)).data.members;
+      return signedIn() && request.auth.uid in members
+        && members[request.auth.uid].get('removed', false) != true;
+    }
+
+    // As above, with this request's writes applied (households created in the same batch).
+    function isListedAfter(householdID) {
+      return signedIn() && request.auth.uid in getAfter(householdPath(householdID)).data.members;
+    }
+
+    function isActiveMemberAfter(householdID) {
+      let members = getAfter(householdPath(householdID)).data.members;
+      return signedIn() && request.auth.uid in members
+        && members[request.auth.uid].get('removed', false) != true;
+    }
+
+    function userIDPath(userID) {
+      return /databases/$(database)/documents/user_ids/$(userID);
+    }
+
+    // Whether the app's user id belongs to the signed-in user.
+    function isMe(userID) {
+      return signedIn() && get(userIDPath(userID)).data.uid == request.auth.uid;
+    }
+
+    // As above, for user ids registered in the same batch (sign-up).
+    function isMeAfter(userID) {
+      return signedIn() && getAfter(userIDPath(userID)).data.uid == request.auth.uid;
+    }
+
+    function unchanged(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    match /user_ids/{userID} {
+      allow read: if signedIn() && resource.data.uid == request.auth.uid;
+      // Created once: setting an existing id is an update, which nobody may do.
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /profiles/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create: if signedIn() && request.auth.uid == uid
+        && isMeAfter(request.resource.data.id)
+        && isListedAfter(request.resource.data.active_household_id);
+      allow update: if signedIn() && request.auth.uid == uid
+        && unchanged('id')
+        && (unchanged('active_household_id') || isListedAfter(request.resource.data.active_household_id));
+
+      match /device_tokens/{token} {
+        allow read, write: if signedIn() && request.auth.uid == uid;
+      }
+    }
+
+    match /households/{householdID} {
+      function onlyMyEntryChanges() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'is_shared'])
+          && request.resource.data.members.diff(resource.data.members).affectedKeys().hasOnly([request.auth.uid]);
+      }
+
+      // Rename, share, remove members (flag them), hand over ownership, leave. Never add anyone.
+      function ownerUpdate() {
+        return resource.data.owner_uid == request.auth.uid
+          && resource.data.members.keys().hasAll(request.resource.data.members.keys())
+          && request.resource.data.owner_uid in request.resource.data.members;
+      }
+
+      // A member renames themselves or leaves (sharing may only be turned off on the way out).
+      // The owner leaves through ownerUpdate, handing ownership over.
+      function memberUpdate() {
+        let mine = request.auth.uid;
+        return mine in resource.data.members
+          && resource.data.owner_uid != mine
+          && onlyMyEntryChanges()
+          && (unchanged('is_shared') || request.resource.data.is_shared == false)
+          && (!(mine in request.resource.data.members)
+            || (request.resource.data.members[mine].user_id == resource.data.members[mine].user_id
+              && request.resource.data.members[mine].get('removed', false) == resource.data.members[mine].get('removed', false)));
+      }
+
+      // Joining: the user adds themselves, with a pending invite to their verified email.
+      function joinUpdate() {
+        let mine = request.auth.uid;
+        let invite = get(/databases/$(database)/documents/invites/$(householdID + '_' + request.auth.token.email));
+        return !(mine in resource.data.members)
+          && onlyMyEntryChanges()
+          && mine in request.resource.data.members
+          && request.resource.data.members[mine].get('removed', false) == false
+          && isMe(request.resource.data.members[mine].user_id)
+          && request.auth.token.email_verified == true
+          && invite.data.status == 'pending';
+      }
+
+      allow read: if signedIn() && request.auth.uid in resource.data.members;
+
+      // A new personal household: the creator is its only member and owner.
+      allow create: if signedIn()
+        && request.resource.data.id == householdID
+        && request.resource.data.owner_uid == request.auth.uid
+        && request.resource.data.members.keys().hasOnly([request.auth.uid])
+        && isMeAfter(request.resource.data.members[request.auth.uid].user_id);
+
+      allow update: if signedIn() && unchanged('id')
+        && (ownerUpdate() || memberUpdate() || joinUpdate());
+
+      // The owner deletes a household only once they're its last member.
+      allow delete: if signedIn()
+        && resource.data.owner_uid == request.auth.uid
+        && resource.data.members.keys().hasOnly([request.auth.uid]);
+    }
+
+    match /categories/{categoryID} {
+      allow read: if isListed(resource.data.household_id);
+      allow create: if request.resource.data.id == categoryID
+        && isActiveMemberAfter(request.resource.data.household_id);
+      allow update: if unchanged('id') && unchanged('household_id')
+        && isActiveMember(resource.data.household_id);
+      allow delete: if isActiveMember(resource.data.household_id);
+    }
+
+    // Transactions and recurring charges: read by the household, written by their author.
+    // Moving one to another household needs active membership there.
+    match /transactions/{transactionID} {
+      allow read: if isActiveMember(resource.data.household_id) || isMe(resource.data.user_id);
+      allow create: if request.resource.data.id == transactionID
+        && isMe(request.resource.data.user_id)
+        && isActiveMemberAfter(request.resource.data.household_id);
+      allow update: if unchanged('id') && unchanged('user_id')
+        && isMe(resource.data.user_id)
+        && isActiveMemberAfter(request.resource.data.household_id);
+      allow delete: if isMe(resource.data.user_id);
+    }
+
+    match /recurring_rules/{ruleID} {
+      allow read: if isActiveMember(resource.data.household_id) || isMe(resource.data.user_id);
+      allow create: if request.resource.data.id == ruleID
+        && isMe(request.resource.data.user_id)
+        && isActiveMemberAfter(request.resource.data.household_id);
+      allow update: if unchanged('id') && unchanged('user_id')
+        && isMe(resource.data.user_id)
+        && isActiveMemberAfter(request.resource.data.household_id);
+      allow delete: if isMe(resource.data.user_id);
+    }
+
+    match /merchant_map/{entryID} {
+      allow read, delete: if isActiveMember(resource.data.household_id);
+      allow create: if isActiveMemberAfter(request.resource.data.household_id);
+      allow update: if unchanged('household_id') && isActiveMember(resource.data.household_id);
+    }
+
+    match /invites/{inviteID} {
+      function isInvitee() {
+        return signedIn() && resource.data.email == request.auth.token.email;
+      }
+
+      allow read: if isActiveMember(resource.data.household_id) || isInvitee();
+      allow create: if inviteID == request.resource.data.household_id + '_' + request.resource.data.email
+        && request.resource.data.status == 'pending'
+        && request.resource.data.invited_by == request.auth.uid
+        && isActiveMember(request.resource.data.household_id);
+      // Members re-send or revoke; the invitee accepts or declines.
+      allow update: if (unchanged('household_id') && unchanged('email')
+          && request.resource.data.status in ['pending', 'revoked']
+          && isActiveMember(resource.data.household_id))
+        || (isInvitee() && resource.data.status == 'pending'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+          && request.resource.data.status in ['accepted', 'declined']);
+      allow delete: if isActiveMember(resource.data.household_id);
+    }
+  }
+}

@@ -348,10 +348,13 @@ struct DeleteAccountSheet: View {
     @Environment(AppState.self) private var app
     @Environment(\.dismiss) private var dismiss
     @State private var confirmation = ""
+    @State private var password = ""
     @State private var isDeleting = false
     @State private var failure: AuthFailure?
 
-    private var isConfirmed: Bool { confirmation.trimmingCharacters(in: .whitespaces) == "מחק" }
+    private var isConfirmed: Bool {
+        confirmation.trimmingCharacters(in: .whitespaces) == "מחק" && !password.isEmpty
+    }
 
     var body: some View {
         VStack(spacing: Spacing.m) {
@@ -372,6 +375,15 @@ struct DeleteAccountSheet: View {
                     .fieldSurface(state: isConfirmed ? .focused : .normal)
                     .accessibilityIdentifier("delete.confirmation")
             }
+            VStack(alignment: .leading, spacing: 6) {
+                Text("והסיסמה שלך")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
+                SecureField("", text: $password)
+                    .textContentType(.password)
+                    .fieldSurface(state: failure == .invalidCredentials ? .error : .normal)
+                    .accessibilityIdentifier("delete.password")
+            }
             if let failure {
                 ErrorBanner(message: failure.message)
             }
@@ -380,7 +392,7 @@ struct DeleteAccountSheet: View {
                 failure = nil
                 Task {
                     do {
-                        try await app.deleteAccount()
+                        try await app.deleteAccount(password: password)
                     } catch {
                         failure = error as? AuthFailure ?? .unknown
                         isDeleting = false
@@ -396,7 +408,7 @@ struct DeleteAccountSheet: View {
                 .buttonStyle(.glassSecondary)
         }
         .padding(Spacing.l)
-        .presentationDetents([.height(560)])
+        .presentationDetents([.height(650)])
         .designSheet()
         .interactiveDismissDisabled(isDeleting)
     }

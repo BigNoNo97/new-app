@@ -87,7 +87,7 @@ struct ConnectionProblemView: View {
     }
 }
 
-/// Builds without Supabase settings (before the project exists) show this instead of crashing.
+/// Builds without Firebase settings (before the project exists) show this instead of crashing.
 struct ServerNotConfiguredView: View {
     var body: some View {
         VStack(spacing: Spacing.m) {
@@ -96,7 +96,7 @@ struct ServerNotConfiguredView: View {
                 .foregroundStyle(Theme.textSecondary)
             Text("השרת עדיין לא מוגדר")
                 .font(.title2.weight(.bold))
-            Text("הגרסה הזו נבנתה בלי כתובת השרת. אחרי שיוגדר פרויקט Supabase, הגרסה הבאה תעבוד.")
+            Text("הגרסה הזו נבנתה בלי הגדרות השרת. אחרי שיוגדר פרויקט Firebase, הגרסה הבאה תעבוד.")
                 .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
         }

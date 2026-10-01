@@ -10,7 +10,7 @@ public enum TransactionSource: String, Codable, Sendable, CaseIterable {
     case openBanking = "open_banking"
 }
 
-/// A row of `public.transactions`.
+/// A transaction (`transactions/{id}` in Firestore).
 ///
 /// `originalAmount`/`originalCurrency` are what was paid; `amount`/`currency` are the cost in the
 /// user's main currency, card fee included. Totals always use `amount`.
@@ -131,7 +131,7 @@ public struct TransactionRow: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
-/// A row of `public.categories`, as read back from the server.
+/// A category (`categories/{id}` in Firestore).
 public struct CategoryItem: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var householdID: UUID
@@ -206,7 +206,7 @@ public struct CategoryItem: Codable, Identifiable, Hashable, Sendable {
 public struct HouseholdMember: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var fullName: String
-    /// From `household_members.role`; not part of the profile row it's decoded from.
+    /// From the household's `owner_uid`; not part of the stored member entry.
     public var isOwner = false
 
     public init(id: UUID, fullName: String, isOwner: Bool = false) {

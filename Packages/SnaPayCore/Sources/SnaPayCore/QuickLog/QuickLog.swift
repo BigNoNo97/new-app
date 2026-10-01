@@ -243,7 +243,7 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
     }
 }
 
-/// A row of `public.merchant_category_map`: how often the household filed a merchant under a
+/// An entry of `merchant_map` in Firestore: how often the household filed a merchant under a
 /// category.
 public struct MerchantCategoryRow: Codable, Hashable, Sendable {
     public var householdID: UUID

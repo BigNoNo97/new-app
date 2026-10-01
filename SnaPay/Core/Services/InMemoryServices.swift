@@ -239,7 +239,7 @@ final class InMemoryServices: AuthServicing, AccountRepository, DataRepository {
         deviceTokens[token] = nil
     }
 
-    func deleteAccount() async throws {
+    func deleteAccount(password: String) async throws {
         guard let me = currentUser else { return }
         profiles[me] = nil
         transactions = transactions.filter { $0.value.userID != me }

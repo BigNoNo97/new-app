@@ -1,6 +1,6 @@
 import Foundation
 
-/// A row of `public.recurring_rules`.
+/// A recurring charge (`recurring_rules/{id}` in Firestore).
 public struct RecurringRuleRow: Codable, Identifiable, Hashable, Sendable {
     public enum Frequency: String, Codable, Sendable, CaseIterable {
         case weekly

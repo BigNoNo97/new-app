@@ -43,7 +43,7 @@ enum QuickLogService {
 
     /// Where categorized payments are uploaded straight away. `nil` in UI tests; the app
     /// uploads whatever is left the next time it opens.
-    static var repository: DataRepository? { AppConfig.isUITesting ? nil : SupabaseServices.shared }
+    static var repository: DataRepository? { AppConfig.isUITesting ? nil : FirebaseServices.shared }
 
     /// Saves the payment the automation reported. Returns the key for the card: the payment's
     /// id, or why nothing was captured.

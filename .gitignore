@@ -8,3 +8,13 @@ xcuserdata/
 *.xcarchive
 .DS_Store
 Config/Secrets.xcconfig
+# Firebase rules tests
+node_modules/
+firebase-debug.log
+firestore-debug.log
+# Signing material never goes in the repo (only the App Store profiles in signing/)
+*.p12
+*.p8
+*.key
+*.certSigningRequest
+GoogleService-Info.plist

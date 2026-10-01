@@ -230,6 +230,7 @@ extension HouseholdFailure {
         case .inviteNotFound: "ההזמנה כבר לא בתוקף."
         case .alreadyMember: "זה המייל שלך. צריך להזין את המייל של השותף."
         case .notOwner: "רק מי שמנהל את החשבון יכול להסיר שותפים."
+        case .emailNotVerified: "צריך קודם לאשר את כתובת המייל. שלחנו לך קישור לאישור, ואחריו אפשר לנסות שוב."
         case .network: "אין חיבור לאינטרנט. נסו שוב."
         case .unknown: "משהו השתבש. נסו שוב."
         }

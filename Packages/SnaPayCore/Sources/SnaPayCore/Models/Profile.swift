@@ -1,6 +1,6 @@
 import Foundation
 
-/// A row of `public.profiles`.
+/// The user's profile (`profiles/{uid}` in Firestore).
 public struct Profile: Codable, Equatable, Sendable {
     public var id: UUID
     public var fullName: String
@@ -91,7 +91,7 @@ public struct Profile: Codable, Equatable, Sendable {
     }
 }
 
-/// A row to insert into (or upsert on) `public.categories`.
+/// A category created in onboarding.
 public struct CategoryRow: Codable, Equatable, Sendable {
     public var id: UUID
     public var householdID: UUID
