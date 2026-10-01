@@ -1,4 +1,5 @@
 import SwiftUI
+import SnaPayCore
 
 // Placeholder tab screens so the navigation shell runs end to end. Each one is replaced
 // by the real screen in its build stage (see TASKS.md).

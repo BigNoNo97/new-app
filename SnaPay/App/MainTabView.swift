@@ -1,4 +1,5 @@
 import SwiftUI
+import SnaPayCore
 
 enum AppTab: CaseIterable, Hashable {
     case home, expenses, goals, profile

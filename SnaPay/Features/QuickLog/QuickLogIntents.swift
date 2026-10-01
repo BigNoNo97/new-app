@@ -6,10 +6,9 @@ import SwiftUI
 // The intent saves the payment to the shared inbox and shows an interactive card: one tap on a
 // category runs `ChooseCategoryIntent`, and the system redraws the card.
 //
-// The intent types are nonisolated (the target defaults to the main actor) and hand the work to
-// `QuickLogService` on the main actor.
+// The intents run on the main actor (the target's default), like `QuickLogService`.
 
-nonisolated struct LogPaymentIntent: AppIntent {
+struct LogPaymentIntent: AppIntent {
     static let title: LocalizedStringResource = "תיעוד תשלום"
     static var description: IntentDescription {
         IntentDescription("שומר תשלום ב-SnaPay ומציג חלונית קטנה לבחירת קטגוריה. מיועד לאוטומציית \"עסקה\" של קיצורים.")
@@ -32,13 +31,13 @@ nonisolated struct LogPaymentIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult & ShowsSnippetIntent {
-        let key = await QuickLogService.capture(amountText: amount, merchant: merchant, card: card)
+        let key = QuickLogService.capture(amountText: amount, merchant: merchant, card: card)
         return .result(snippetIntent: QuickLogSnippetIntent(key: key))
     }
 }
 
 /// Draws the quick-log card for a captured payment (or a message when nothing was captured).
-nonisolated struct QuickLogSnippetIntent: SnippetIntent {
+struct QuickLogSnippetIntent: SnippetIntent {
     static let title: LocalizedStringResource = "חלונית תיעוד"
     static let isDiscoverable = false
 
@@ -53,13 +52,13 @@ nonisolated struct QuickLogSnippetIntent: SnippetIntent {
     }
 
     func perform() async throws -> some IntentResult & ShowsSnippetView {
-        let model = await QuickLogService.card(for: key)
+        let model = QuickLogService.card(for: key)
         return .result(view: QuickLogCardView(model: model))
     }
 }
 
 /// A category tapped on the quick-log card.
-nonisolated struct ChooseCategoryIntent: AppIntent {
+struct ChooseCategoryIntent: AppIntent {
     static let title: LocalizedStringResource = "בחירת קטגוריה"
     static let isDiscoverable = false
     static let openAppWhenRun = false
@@ -86,7 +85,7 @@ nonisolated struct ChooseCategoryIntent: AppIntent {
 }
 
 /// "ביטול" on the saved card.
-nonisolated struct UndoCategoryIntent: AppIntent {
+struct UndoCategoryIntent: AppIntent {
     static let title: LocalizedStringResource = "ביטול סיווג"
     static let isDiscoverable = false
     static let openAppWhenRun = false
@@ -109,7 +108,7 @@ nonisolated struct UndoCategoryIntent: AppIntent {
 }
 
 /// "עוד…" on the card: opens SnaPay, where the payment waits on Home with every category.
-nonisolated struct OpenSnaPayIntent: AppIntent {
+struct OpenSnaPayIntent: AppIntent {
     static let title: LocalizedStringResource = "פתיחת SnaPay"
     static let isDiscoverable = false
     static let openAppWhenRun = true
