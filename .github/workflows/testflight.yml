@@ -44,6 +44,8 @@ jobs:
           DIST_CERT_P12: ${{ secrets.DIST_CERT_P12 }}
           DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
         run: |
+          # A secret saved from a file can end with a newline that isn't part of the password.
+          DIST_CERT_PASSWORD="$(printf '%s' "$DIST_CERT_PASSWORD" | tr -d '\r\n')"
           KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
           echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
           KEYCHAIN_PASSWORD=$(uuidgen)
