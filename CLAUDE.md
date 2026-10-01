@@ -71,7 +71,7 @@ brew install xcodegen && xcodegen generate
 xcodebuild test -project SnaPay.xcodeproj -scheme SnaPay -destination 'platform=iOS Simulator,name=iPhone 17' CODE_SIGNING_ALLOWED=NO
 ```
 
-- **חיסכון בדקות Actions:** הריפו פרטי, וכל דקת macOS נספרת פי 10 מול המכסה החודשית.
+- **דקות Actions:** מ-1.10 הריפו ציבורי, ולכן הדקות חינמיות (גם על macOS), אחרי שהמכסה של הריפו הפרטי נגמרה. הוא גלוי לכולם: אסור להכניס לריפו סודות, מפתחות או קבצי `GoogleService-Info.plist`. הכללים כאן נשארים בשביל המהירות:
   - טסטי `SnaPayCore` רצים על לינוקס בכל שינוי.
   - הבנייה על macOS, טסטי הממשק וצילומי המסך רצים רק ב-PR שאינו טיוטה, או בהפעלה ידנית.
   - אופן העבודה: פותחים PR כטיוטה, בודקים מקומית ככל האפשר, ומעבירים ל-"Ready for review" רק בסוף שלב. תיקונים אחרי זה נאספים לדחיפה אחת.
