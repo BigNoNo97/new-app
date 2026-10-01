@@ -18,8 +18,12 @@
 - [x] להקים צינור בנייה ל-TestFlight ב-GitHub Actions
 - [x] לוודא שבדיקת הקוד (CI) עוברת בפעם הראשונה על macOS (34 טסטים ובנייה עברו)
 - [x] אייקון סופי מ-Claude Design (בהיר, כהה ו-tinted)
-- [ ] ממך: ליצור מזהה אפליקציה ב-App Store Connect
-- [ ] ממך: ליצור מפתח API של App Store Connect ולשמור אותו כסוד ב-GitHub
+- [x] ממך: לרשום מזהים ב-Apple Developer (אפליקציה, ווידג'ט וקבוצת שיתוף)
+- [x] ממך: ליצור את האפליקציה ב-App Store Connect
+- [x] לעבור לחתימה ידנית ב-`testflight.yml`: לצוות אין גישה ל-API של App Store Connect, ורק בעל החשבון יכול לבקש אותה
+- [ ] ממך: מפתח ובקשת חתימה במחשב, תעודת Apple Distribution ושני פרופילי App Store (אפליקציה ווידג'ט) בתיקייה `signing/`
+- [ ] ממך: סודות ב-GitHub: `APPLE_TEAM_ID`, `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `APPLE_ID`, `APPLE_APP_PASSWORD`, והמשתנה `TESTFLIGHT_ENABLED`
+- [ ] לחדש את התעודה והפרופילים פעם בשנה (חתימה ידנית לא מתחדשת לבד)
 - [ ] ממך: ליצור מפתח APNs להתראות, ולשמור ב-GitHub את הסודות `APNS_KEY` (תוכן קובץ ה-p8), `APNS_KEY_ID` ו-`APNS_TEAM_ID`
 - [x] לבדוק מכסת דקות macOS ב-GitHub Actions: הריפו נשאר פרטי, וטסטי הלוגיקה עברו ללינוקס
 - [ ] לעקוב אחרי מכסת הדקות. אם צריך יותר ריצות על Mac, להגדיר תקציב ב-GitHub או להפוך את הריפו לציבורי

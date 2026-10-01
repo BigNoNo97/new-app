@@ -8,10 +8,10 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["**.md", "docs/**", "supabase/**"]
+    paths-ignore: ["**.md", "docs/**", "supabase/**", "signing/**", ".github/workflows/testflight.yml"]
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "supabase/**"]
+    paths-ignore: ["**.md", "docs/**", "supabase/**", "signing/**", ".github/workflows/testflight.yml"]
   workflow_dispatch:
 
 concurrency:

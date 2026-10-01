@@ -47,8 +47,8 @@ targets:
       properties:
         com.apple.security.application-groups:
           - group.com.bignono97.snapay
-        # Partner notifications. Exporting for TestFlight / App Store switches it to production.
-        aps-environment: development
+        # Partner notifications: the APNs sandbox in Debug, production in Release (TestFlight).
+        aps-environment: $(APS_ENVIRONMENT)
     info:
       path: SnaPay/Info.plist
       properties:
@@ -71,8 +71,15 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
+        # Empty except in the TestFlight workflow, which signs manually.
+        PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_APP_PROFILE)
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Debug:
+          APS_ENVIRONMENT: development
+        Release:
+          APS_ENVIRONMENT: production
 
   SnaPayWidget:
     type: app-extension
@@ -96,6 +103,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
+        PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_WIDGET_PROFILE)
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
   SnaPayUITests:
