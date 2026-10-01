@@ -21,9 +21,13 @@
 - [x] ממך: לרשום מזהים ב-Apple Developer (אפליקציה, ווידג'ט וקבוצת שיתוף)
 - [x] ממך: ליצור את האפליקציה ב-App Store Connect
 - [x] לעבור לחתימה ידנית ב-`testflight.yml`: לצוות אין גישה ל-API של App Store Connect, ורק בעל החשבון יכול לבקש אותה
-- [ ] ממך: מפתח ובקשת חתימה במחשב, תעודת Apple Distribution ושני פרופילי App Store (אפליקציה ווידג'ט) בתיקייה `signing/`
-- [ ] ממך: סודות ב-GitHub: `APPLE_TEAM_ID`, `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `APPLE_ID`, `APPLE_APP_PASSWORD`, והמשתנה `TESTFLIGHT_ENABLED`
-- [ ] לחדש את התעודה והפרופילים פעם בשנה (חתימה ידנית לא מתחדשת לבד)
+- [x] ממך: תעודת Apple Distribution ושני פרופילי App Store (אפליקציה ווידג'ט) בתיקייה `signing/`. בגלל מגבלת התעודות בצוות, SnaPay משתמשת בתעודה של Gym Tracker
+- [x] ממך: סודות ב-GitHub: `APPLE_TEAM_ID`, `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `APPLE_ID`, `APPLE_APP_PASSWORD`, והמשתנה `TESTFLIGHT_ENABLED`
+- [x] ממך: להפעיל Push Notifications במזהה `com.bignono97.snapay` (כל שינוי ביכולות מחייב לייצר את פרופיל האפליקציה מחדש)
+- [ ] ממך: לגבות במקום פרטי את התיקייה `snapay-signing` (המפתח הפרטי של התעודה)
+- [ ] ממך: פרויקט Supabase, והסודות והמשתנים שלו ב-GitHub
+- [ ] מיזוג PR 4 באישורך, ומעקב אחרי ההעלאה הראשונה ל-TestFlight
+- [ ] לחדש את התעודה והפרופילים עד 2027-10-01. התעודה משותפת ל-Gym Tracker, ולכן ביטול שלה שובר את שתי האפליקציות
 - [ ] ממך: ליצור מפתח APNs להתראות, ולשמור ב-GitHub את הסודות `APNS_KEY` (תוכן קובץ ה-p8), `APNS_KEY_ID` ו-`APNS_TEAM_ID`
 - [x] לבדוק מכסת דקות macOS ב-GitHub Actions: הריפו נשאר פרטי, וטסטי הלוגיקה עברו ללינוקס
 - [ ] לעקוב אחרי מכסת הדקות. אם צריך יותר ריצות על Mac, להגדיר תקציב ב-GitHub או להפוך את הריפו לציבורי
