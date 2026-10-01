@@ -47,7 +47,7 @@ struct NiceToMeetYouView: View {
             .padding(.horizontal, Spacing.gutter)
             .padding(.bottom, Spacing.m)
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             Button("נתחיל!") { app.continueFromNiceToMeetYou() }
                 .buttonStyle(.primary)
                 .padding(.horizontal, Spacing.gutter)

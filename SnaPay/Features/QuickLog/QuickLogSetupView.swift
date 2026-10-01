@@ -129,7 +129,7 @@ struct QuickLogSetupView: View {
             .padding(.horizontal, Spacing.gutter)
             .padding(.vertical, Spacing.l)
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             VStack(spacing: Spacing.s) {
                 Button {
                     openURL(URL(string: "shortcuts://")!)

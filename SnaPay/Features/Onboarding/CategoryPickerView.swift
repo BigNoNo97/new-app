@@ -75,7 +75,7 @@ struct CategoryPickerView: View {
             .padding(.horizontal, Spacing.gutter)
             .padding(.bottom, Spacing.m)
         }
-        .safeAreaInset(edge: .bottom) {
+        .safeAreaBar(edge: .bottom) {
             VStack(spacing: Spacing.sm) {
                 Text("לחיצה ארוכה על קטגוריה פותחת עריכה")
                     .font(.footnote)

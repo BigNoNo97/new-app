@@ -60,6 +60,19 @@ final class FamilyUITests: XCTestCase {
         tap(app.buttons["sharing.leave"], in: app)
         tap(app.buttons["יציאה"], in: app)
 
+        let toggle = app.switches["sharing.toggle"]
+        let personal = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: toggle)
+        XCTAssertEqual(XCTWaiter().wait(for: [personal], timeout: 10), .completed, "sharing is off after leaving")
+
+        // Settings is scrolled down to the leave button; close it from the top.
+        let close = app.buttons["settings.close"]
+        var attempts = 0
+        while !close.isHittable && attempts < 6 {
+            app.swipeDown()
+            attempts += 1
+        }
+        close.tap()
+
         XCTAssertTrue(app.staticTexts["חשבון אישי"].waitForExistence(timeout: 10), "back to a personal account")
         tap(app.buttons["tab.home"], in: app)
         XCTAssertTrue(app.buttons["transaction.ארומה"].waitForExistence(timeout: 10), "my expenses came with me")

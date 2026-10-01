@@ -33,18 +33,21 @@ struct WelcomeView: View {
 
     var body: some View {
         VStack(spacing: Spacing.l) {
+            // The hero gives way first on shorter screens, so the copy is never cut.
             WelcomeHero()
-                .frame(height: 330)
-                .padding(.top, Spacing.m)
+                .frame(minHeight: 250, maxHeight: 310)
+                .layoutPriority(-1)
 
             VStack(alignment: .leading, spacing: Spacing.s) {
                 Text("כל הוצאה,\nבלחיצה אחת.")
                     .font(.system(size: 36, weight: .bold))
                     .foregroundStyle(Theme.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
                 // \u{200F} (RLM) keeps the paragraph right-to-left although it starts with a Latin word.
                 Text("\u{200F}SnaPay קולט את התשלום מהאייפון, ואתה רק בוחר קטגוריה.")
                     .font(.title3)
                     .foregroundStyle(Theme.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -94,6 +97,7 @@ private struct WelcomeHero: View {
 
     private let tiles: [(String, UInt32)] = [("🛒", 0x2FB36D), ("🍔", 0xFF8A3D), ("🛍️", 0xE056B0), ("🏠", 0x8B5CF6)]
 
+    // Offsets follow the layout direction: in Hebrew a positive x moves left.
     var body: some View {
         ZStack {
             // Month card (back, bottom left)
@@ -114,7 +118,7 @@ private struct WelcomeHero: View {
             }
             .frame(width: 170)
             .rotationEffect(.degrees(-4))
-            .offset(x: -95, y: isFloating ? 88 : 96)
+            .offset(x: 95, y: isFloating ? 88 : 96)
 
             // Payment card (front, top right)
             GlassCard(padding: Spacing.m) {
@@ -146,7 +150,7 @@ private struct WelcomeHero: View {
             }
             .frame(width: 245)
             .rotationEffect(.degrees(2))
-            .offset(x: 45, y: isFloating ? -62 : -54)
+            .offset(x: -45, y: isFloating ? -62 : -54)
 
             // Saved chip
             HStack(spacing: Spacing.s) {
@@ -163,11 +167,11 @@ private struct WelcomeHero: View {
             .padding(.horizontal, Spacing.sm)
             .padding(.vertical, 10)
             .glassSurface(radius: 18)
-            .offset(x: 40, y: isFloating ? 92 : 100)
+            .offset(x: -40, y: isFloating ? 92 : 100)
 
             // Logo tile
             BrandTile(size: 52)
-                .offset(x: -100, y: isFloating ? -118 : -112)
+                .offset(x: 100, y: isFloating ? -118 : -112)
         }
         .frame(maxWidth: .infinity)
         .accessibilityHidden(true)
