@@ -88,8 +88,8 @@ struct HouseholdDocumentTests {
 
     @Test func inviteDocumentsAreKeyedByHouseholdAndEmail() throws {
         let household = UUID()
-        // Stored dates keep whole milliseconds.
-        let invite = InviteDocument(householdID: household, email: "dana@example.com", createdAt: Date(timeIntervalSince1970: 1_790_000_000.123),
+        // Stored dates keep whole milliseconds (and .125 is exact in binary).
+        let invite = InviteDocument(householdID: household, email: "dana@example.com", createdAt: Date(timeIntervalSince1970: 1_790_000_000.125),
                                     invitedBy: "uid-partner", inviterName: "מיכל כהן")
         #expect(invite.documentID == "\(household.uuidString)_dana@example.com")
         let document = try FirestoreJSON.encode(invite)
