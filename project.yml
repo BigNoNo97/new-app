@@ -12,7 +12,8 @@ settings:
     SWIFT_VERSION: "6.0"
     SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
     SWIFT_APPROACHABLE_CONCURRENCY: YES
-    MARKETING_VERSION: "0.1.0"
+    # The first TestFlight build went up as 1.0 (XcodeGen's default), so versions continue from there.
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
@@ -54,6 +55,9 @@ targets:
       path: SnaPay/Info.plist
       properties:
         CFBundleDisplayName: SnaPay
+        # XcodeGen writes a fixed "1.0 (1)" otherwise; the TestFlight workflow sets the build number.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: he
         CFBundleLocalizations: [he]
         ITSAppUsesNonExemptEncryption: false
@@ -105,6 +109,9 @@ targets:
       path: SnaPayWidget/Info.plist
       properties:
         CFBundleDisplayName: SnaPay
+        # Must match the app's version and build number.
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleDevelopmentRegion: he
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
