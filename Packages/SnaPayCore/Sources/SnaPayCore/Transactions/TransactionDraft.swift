@@ -148,6 +148,30 @@ public enum AmountInput {
         }
     }
 
+    /// The text as shown while typing: "," between thousands, the decimal part as typed
+    /// ("15000" → "15,000", "1234.5" → "1,234.5", "12." stays "12.").
+    public static func grouped(_ text: String) -> String {
+        let parts = text.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        let integer = Array(parts.first.map(String.init) ?? "")
+        var result = ""
+        for (index, digit) in integer.enumerated() {
+            if index > 0, (integer.count - index) % 3 == 0 { result.append(",") }
+            result.append(digit)
+        }
+        if parts.count > 1 { result += "." + parts[1] }
+        return result
+    }
+
+    /// Free typing (a text field, which may show "," groups) reduced to what `apply` would allow:
+    /// digits and one ".", up to eight integer digits and two decimals.
+    public static func normalized(_ typed: String) -> String {
+        typed.reduce(into: "") { text, character in
+            let key = String(character)
+            guard character.isASCII, character.isNumber || key == "." else { return }
+            text = apply(key: key, to: text)
+        }
+    }
+
     public static func decimal(from text: String) -> Decimal {
         let cleaned = text.filter { $0.isNumber || $0 == "." }
         return Decimal(string: cleaned, locale: Locale(identifier: "en_US_POSIX")) ?? 0

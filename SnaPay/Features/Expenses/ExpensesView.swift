@@ -353,8 +353,12 @@ struct FilterSheet: View {
         applied.apply(to: store.transactions) { store.category($0)?.name }
     }
 
+    /// Shows "," between thousands while typing; the binding keeps the plain number.
     private func amountField(_ placeholder: String, text: Binding<String>) -> some View {
-        TextField(placeholder, text: text)
+        TextField(placeholder, text: Binding(
+            get: { AmountInput.grouped(text.wrappedValue) },
+            set: { text.wrappedValue = AmountInput.normalized($0) }
+        ))
             .keyboardType(.decimalPad)
             .monospacedDigit()
             .fieldSurface()
