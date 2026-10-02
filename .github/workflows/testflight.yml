@@ -44,6 +44,8 @@ jobs:
           DIST_CERT_P12: ${{ secrets.DIST_CERT_P12 }}
           DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
         run: |
+          # A secret saved from a file can end with a newline that isn't part of the password.
+          DIST_CERT_PASSWORD="$(printf '%s' "$DIST_CERT_PASSWORD" | tr -d '\r\n')"
           KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
           echo "KEYCHAIN=$KEYCHAIN" >> "$GITHUB_ENV"
           KEYCHAIN_PASSWORD=$(uuidgen)
@@ -51,8 +53,23 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           printf '%s' "$DIST_CERT_P12" | tr -d '\r\n ' | base64 --decode > "$RUNNER_TEMP/dist.p12"
-          security import "$RUNNER_TEMP/dist.p12" -k "$KEYCHAIN" -P "$DIST_CERT_PASSWORD" -f pkcs12 -A -T /usr/bin/codesign
-          rm -f "$RUNNER_TEMP/dist.p12"
+          # OpenSSL 3 encrypts .p12 files with AES by default, which `security import` can't read
+          # (it reports a wrong password). Re-encode with the legacy ciphers macOS understands.
+          OPENSSL="$(brew --prefix openssl@3)/bin/openssl"
+          if ! "$OPENSSL" pkcs12 -in "$RUNNER_TEMP/dist.p12" -passin env:DIST_CERT_PASSWORD -noout; then
+            rm -f "$RUNNER_TEMP/dist.p12"
+            echo "::error::DIST_CERT_PASSWORD doesn't open DIST_CERT_P12 (or DIST_CERT_P12 isn't a base64 .p12)"
+            exit 1
+          fi
+          (
+            umask 077
+            "$OPENSSL" pkcs12 -in "$RUNNER_TEMP/dist.p12" -passin env:DIST_CERT_PASSWORD -nodes -out "$RUNNER_TEMP/dist.pem" &&
+            "$OPENSSL" pkcs12 -export -in "$RUNNER_TEMP/dist.pem" -out "$RUNNER_TEMP/legacy.p12" -passout env:DIST_CERT_PASSWORD \
+              -certpbe PBE-SHA1-3DES -keypbe PBE-SHA1-3DES -macalg sha1
+          ) || { rm -f "$RUNNER_TEMP/dist.pem" "$RUNNER_TEMP/dist.p12"; exit 1; }
+          rm -f "$RUNNER_TEMP/dist.pem" "$RUNNER_TEMP/dist.p12"
+          security import "$RUNNER_TEMP/legacy.p12" -k "$KEYCHAIN" -P "$DIST_CERT_PASSWORD" -f pkcs12 -A -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/legacy.p12"
           # The intermediate that issues Apple Distribution certificates.
           curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o "$RUNNER_TEMP/wwdr.cer"
           security import "$RUNNER_TEMP/wwdr.cer" -k "$KEYCHAIN" || true

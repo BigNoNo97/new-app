@@ -26,9 +26,15 @@
 - [x] ממך: להפעיל Push Notifications במזהה `com.bignono97.snapay` (כל שינוי ביכולות מחייב לייצר את פרופיל האפליקציה מחדש)
 - [ ] ממך: לגבות במקום פרטי את התיקייה `snapay-signing` (המפתח הפרטי של התעודה)
 - [x] Supabase הגיע למגבלה של שני פרויקטים חינמיים, ולכן עוברים ל-Firebase (חבילה חינמית)
-- [ ] ממך: פרויקט Firebase (Authentication עם Email/Password, ‏Firestore ב-`me-west1`, ורישום אפליקציית iOS)
-- [ ] ממך: משתני Firebase ב-GitHub (`FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID`, `FIREBASE_SENDER_ID`) והסוד `FIREBASE_SERVICE_ACCOUNT` לפריסת החוקים
-- [ ] מיזוג PR 4 באישורך, ומעקב אחרי ההעלאה הראשונה ל-TestFlight
+- [x] ממך: פרויקט Firebase (Authentication עם Email/Password, ‏Firestore ב-`me-west1`, ורישום אפליקציית iOS)
+- [x] ממך: משתני Firebase ב-GitHub (`FIREBASE_API_KEY`, `FIREBASE_PROJECT_ID`, `FIREBASE_APP_ID`, `FIREBASE_SENDER_ID`) והסוד `FIREBASE_SERVICE_ACCOUNT` לפריסת החוקים
+- [x] מיזוג PR 4 באישורך (1.10)
+- [x] הצינור ממיר את ה-`.p12` להצפנה ש-macOS קורא, ומסיר ירידת שורה מהסיסמה (PR 5)
+- [x] ממך: `DIST_CERT_P12` ו-`DIST_CERT_PASSWORD` עודכנו מקובץ `.p12` חדש (2.10), והתעודה מותקנת בצינור
+- [x] חתימה, Archive ו-Export ל-App Store עוברים בצינור (2.10)
+- [x] ההעלאה נדחתה (90474) כי האפליקציה נבנתה גם ל-iPad: ה-preset של XcodeGen דרס את `TARGETED_DEVICE_FAMILY`, ועכשיו הוא מוגדר ל-iPhone בכל target
+- [ ] ההעלאה הראשונה ל-TestFlight עוברת, ובודק פנימי מתקין באייפון
+- [x] ממך: לחשבון השירות `firebase-adminsdk` ב-Google Cloud IAM נוספו `Service Usage Consumer`, ‏`Firebase Rules Admin` ו-`Cloud Datastore Index Admin`. חוקי האבטחה והאינדקסים נפרסו (2.10)
 - [ ] לחדש את התעודה והפרופילים עד 2027-10-01. התעודה משותפת ל-Gym Tracker, ולכן ביטול שלה שובר את שתי האפליקציות
 - [ ] התראה לשותפים על הוצאה חדשה: צריך שרת קטן (למשל Cloudflare Workers, חינם) שקורא את הטוקנים מ-Firestore ושולח דרך APNs, ומפתח APNs ממך
 - [x] לבדוק מכסת דקות macOS ב-GitHub Actions: הריפו נשאר פרטי, וטסטי הלוגיקה עברו ללינוקס
@@ -63,9 +69,9 @@
 - [x] שערי מטבע: האפליקציה מורידה מבנק ישראל ו-Frankfurter פעם ביום (`ExchangeRatesSource`, פענוח ב-SnaPayCore עם טסטים)
 - [x] יצירת חיובים מחזוריים: נעשית באפליקציה בכל פתיחה, בלי צורך בפונקציית שרת
 - [x] צינור `firebase.yml`: טסטי החוקים על לינוקס, ופריסה ב-`main`
-- [ ] לאמת קמפול של `FirebaseServices` בריצת macOS (נכתב בלי קומפיילר)
+- [x] לאמת קמפול של `FirebaseServices` בריצת macOS (נכתב בלי קומפיילר)
 - [ ] לאמת בפועל מול Firebase: הרשמה, הוצאה, הזמנת שותף, הצטרפות, יציאה ומחיקת חשבון
-- [ ] לבדוק שהחשבון של ה-service account מספיק לפריסת חוקים ואינדקסים (אם לא, להוסיף לו תפקיד Firebase Admin)
+- [x] לבדוק שהחשבון של ה-service account מספיק לפריסת חוקים ואינדקסים: לא מספיק (403), ראו את התפקידים בשלב 1
 - [ ] ההרשמה כבר לא מחכה לאישור מייל: האם להשאיר כך, או לחסום עד אישור
 
 ## שלב 4: כניסה

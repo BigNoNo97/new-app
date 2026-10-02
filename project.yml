@@ -15,7 +15,6 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGN_STYLE: Automatic
-    TARGETED_DEVICE_FAMILY: "1"
     LOCALIZATION_PREFERS_STRING_CATALOGS: YES
     # Colors come from Theme (Color("name")); generated symbols like Color.fill would clash with SwiftUI.
     ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: NO
@@ -75,6 +74,9 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay
+        # iPhone only. Set per target: XcodeGen's iOS preset sets "1,2" on every target, which
+        # overrides project settings, and an iPad build must support every orientation.
+        TARGETED_DEVICE_FAMILY: "1"
         # Firebase's Objective-C categories, linked through Swift Package Manager.
         OTHER_LDFLAGS: $(inherited) -ObjC
         # Empty except in the TestFlight workflow, which signs manually.
@@ -109,6 +111,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
+        TARGETED_DEVICE_FAMILY: "1"
         PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_WIDGET_PROFILE)
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 
@@ -122,6 +125,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.uitests
+        TARGETED_DEVICE_FAMILY: "1"
         TEST_TARGET_NAME: SnaPay
         # XCTestCase's initializers are nonisolated; test methods opt into @MainActor instead.
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
