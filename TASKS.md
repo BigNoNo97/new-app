@@ -33,7 +33,9 @@
 - [x] ממך: `DIST_CERT_P12` ו-`DIST_CERT_PASSWORD` עודכנו מקובץ `.p12` חדש (2.10), והתעודה מותקנת בצינור
 - [x] חתימה, Archive ו-Export ל-App Store עוברים בצינור (2.10)
 - [x] ההעלאה נדחתה (90474) כי האפליקציה נבנתה גם ל-iPad: ה-preset של XcodeGen דרס את `TARGETED_DEVICE_FAMILY`, ועכשיו הוא מוגדר ל-iPhone בכל target
-- [ ] ההעלאה הראשונה ל-TestFlight עוברת, ובודק פנימי מתקין באייפון
+- [x] ההעלאה הראשונה ל-TestFlight עברה (2.10), בגרסה 1.0 ומספר בנייה 1: ‏XcodeGen כתב ב-Info.plist ערכים קבועים, ולא את `MARKETING_VERSION` ו-`CURRENT_PROJECT_VERSION`
+- [x] ההעלאה אחרי מיזוג PR 5 נדחתה (מספר בנייה 1 כבר קיים). Info.plist לוקח עכשיו את הגרסה ומספר הבנייה מהגדרות הבנייה, והגרסה ממשיכה מ-1.0
+- [ ] בודק פנימי מתקין באייפון דרך TestFlight
 - [x] ממך: לחשבון השירות `firebase-adminsdk` ב-Google Cloud IAM נוספו `Service Usage Consumer`, ‏`Firebase Rules Admin` ו-`Cloud Datastore Index Admin`. חוקי האבטחה והאינדקסים נפרסו (2.10)
 - [ ] לחדש את התעודה והפרופילים עד 2027-10-01. התעודה משותפת ל-Gym Tracker, ולכן ביטול שלה שובר את שתי האפליקציות
 - [ ] התראה לשותפים על הוצאה חדשה: צריך שרת קטן (למשל Cloudflare Workers, חינם) שקורא את הטוקנים מ-Firestore ושולח דרך APNs, ומפתח APNs ממך
