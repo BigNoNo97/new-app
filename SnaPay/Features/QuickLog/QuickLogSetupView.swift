@@ -10,6 +10,9 @@ struct QuickLogSetupView: View {
 
     private enum Phase { case guide, waiting }
     @State private var phase: Phase
+    /// Set once the ready-made shortcut's link was opened; the main button then opens Shortcuts.
+    @AppStorage("quickLog.shortcutOffered") private var shortcutOffered = false
+    private let shortcutURL = AppConfig.quickLogShortcutURL
 
     init(store: TransactionStore) {
         self.store = store
@@ -78,6 +81,11 @@ struct QuickLogSetupView: View {
                 }
 
                 VStack(spacing: Spacing.cardGap) {
+                    if shortcutURL != nil {
+                        SetupStep(isLast: false, text: "לחצו על **הוספת הקיצור** למטה, ואשרו ב**הוספת קיצור**.") {
+                            actionRow(title: "תיעוד ב-SnaPay", subtitle: "קיצור מוכן")
+                        }
+                    }
                     SetupStep(isLast: false, text: "באפליקציית **קיצורים**, עברו ל**אוטומציה**, לחצו על פלוס ובחרו **עסקה**.") {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "creditcard")
@@ -93,7 +101,9 @@ struct QuickLogSetupView: View {
                             Image(systemName: "chevron.backward").font(.caption.weight(.semibold)).foregroundStyle(Theme.textTertiary)
                         }
                     }
-                    SetupStep(isLast: false, text: "סמנו את הכרטיסים שלכם ב-Wallet ובחרו **הפעלה מיידית**, כדי שלא תצטרכו לאשר כל פעם.") {
+                    SetupStep(isLast: false, text: shortcutURL == nil
+                              ? "סמנו את הכרטיסים שלכם ב-Wallet ובחרו **הפעלה מיידית**, כדי שלא תצטרכו לאשר כל פעם."
+                              : "סמנו את הכרטיסים שלכם ב-Wallet, בחרו **הפעלה מיידית** ולחצו **הבא**.") {
                         HStack {
                             Text("הפעלה מיידית").font(.subheadline)
                             Spacer()
@@ -105,20 +115,14 @@ struct QuickLogSetupView: View {
                                 }
                         }
                     }
-                    SetupStep(isLast: true, text: "הוסיפו את הפעולה **תיעוד תשלום** של SnaPay. הסכום ושם בית העסק יעברו אליה לבד.") {
-                        HStack(spacing: Spacing.s) {
-                            Image(systemName: "doc.text")
-                            Text("תיעוד תשלום").font(.subheadline.weight(.bold))
-                            Spacer()
-                            Text("סכום · בית עסק").font(.caption)
+                    if shortcutURL != nil {
+                        SetupStep(isLast: true, text: "ברשימת הקיצורים, בחרו **תיעוד ב-SnaPay**. הסכום, בית העסק והכרטיס יעברו אליו לבד.") {
+                            actionRow(title: "תיעוד ב-SnaPay", subtitle: "סכום · בית עסק")
                         }
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, Spacing.sm)
-                        .frame(height: 40)
-                        .background(
-                            LinearGradient(colors: [Theme.buttonPrimary, Theme.brand], startPoint: .leading, endPoint: .trailing),
-                            in: .rect(cornerRadius: 12)
-                        )
+                    } else {
+                        SetupStep(isLast: true, text: "הוסיפו את הפעולה **תיעוד תשלום** של SnaPay. הסכום ושם בית העסק יעברו אליה לבד.") {
+                            actionRow(title: "תיעוד תשלום", subtitle: "סכום · בית עסק")
+                        }
                     }
                 }
 
@@ -131,13 +135,24 @@ struct QuickLogSetupView: View {
         }
         .safeAreaBar(edge: .bottom) {
             VStack(spacing: Spacing.s) {
-                Button {
-                    openURL(URL(string: "shortcuts://")!)
-                } label: {
-                    Label("פתח את קיצורים", systemImage: "square.2.layers.3d")
+                if let shortcutURL, !shortcutOffered {
+                    Button {
+                        shortcutOffered = true
+                        openURL(shortcutURL)
+                    } label: {
+                        Label("הוספת הקיצור", systemImage: "plus.square.on.square")
+                    }
+                    .buttonStyle(.primary)
+                    .accessibilityIdentifier("quicklog.addShortcut")
+                } else {
+                    Button {
+                        openURL(URL(string: "shortcuts://")!)
+                    } label: {
+                        Label("פתח את קיצורים", systemImage: "square.2.layers.3d")
+                    }
+                    .buttonStyle(.primary)
+                    .accessibilityIdentifier("quicklog.openShortcuts")
                 }
-                .buttonStyle(.primary)
-                .accessibilityIdentifier("quicklog.openShortcuts")
                 Button("כבר הגדרתי") { phase = .waiting }
                     .buttonStyle(.text)
                     .accessibilityIdentifier("quicklog.alreadySet")
@@ -145,6 +160,23 @@ struct QuickLogSetupView: View {
             .padding(.horizontal, Spacing.gutter)
             .padding(.bottom, Spacing.s)
         }
+    }
+
+    /// The SnaPay action (or the ready-made shortcut) as it looks in Shortcuts.
+    private func actionRow(title: String, subtitle: String) -> some View {
+        HStack(spacing: Spacing.s) {
+            Image(systemName: "doc.text")
+            Text(title).font(.subheadline.weight(.bold))
+            Spacer()
+            Text(subtitle).font(.caption)
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, Spacing.sm)
+        .frame(height: 40)
+        .background(
+            LinearGradient(colors: [Theme.buttonPrimary, Theme.brand], startPoint: .leading, endPoint: .trailing),
+            in: .rect(cornerRadius: 12)
+        )
     }
 
     // MARK: Waiting
