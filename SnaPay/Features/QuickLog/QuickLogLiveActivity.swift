@@ -49,7 +49,7 @@ enum QuickLogLiveActivity {
 
     /// After a category was tapped: the "נשמר ב…" line with undo, then the card goes away.
     static func showSaved(paymentID: UUID) async {
-        guard let activity = activity(for: paymentID) else { return }
+        guard let activity = Activity<QuickLogActivityAttributes>.activities.first(where: { $0.attributes.paymentID == paymentID }) else { return }
         guard let state = state(for: paymentID), state.chosen != nil else {
             await activity.end(nil, dismissalPolicy: .immediate)
             return
@@ -67,10 +67,6 @@ enum QuickLogLiveActivity {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
         }
-    }
-
-    private static func activity(for paymentID: UUID) -> Activity<QuickLogActivityAttributes>? {
-        Activity<QuickLogActivityAttributes>.activities.first { $0.attributes.paymentID == paymentID }
     }
 
     private static func state(for paymentID: UUID) -> QuickLogActivityAttributes.ContentState? {
