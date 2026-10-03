@@ -112,6 +112,27 @@ struct AmountInputTests {
         #expect(AmountInput.apply(key: "1", to: "12345678") == "12345678")
         #expect(AmountInput.decimal(from: "") == 0)
     }
+
+    @Test func groupsThousands() {
+        #expect(AmountInput.grouped("") == "")
+        #expect(AmountInput.grouped("999") == "999")
+        #expect(AmountInput.grouped("15000") == "15,000")
+        #expect(AmountInput.grouped("12345678") == "12,345,678")
+        #expect(AmountInput.grouped("1234.5") == "1,234.5")
+        #expect(AmountInput.grouped("1000.") == "1,000.")
+        #expect(AmountInput.grouped("0.") == "0.")
+        #expect(AmountInput.decimal(from: AmountInput.grouped("1234567.89")) == Decimal(string: "1234567.89")!)
+    }
+
+    @Test func normalizesFreeTyping() {
+        #expect(AmountInput.normalized("15,0000") == "150000")
+        #expect(AmountInput.normalized("1,234.567") == "1234.56")
+        #expect(AmountInput.normalized(".5") == "0.5")
+        #expect(AmountInput.normalized("1.2.3") == "1.23")
+        #expect(AmountInput.normalized("₪ 12a") == "12")
+        #expect(AmountInput.normalized("123456789") == "12345678")
+        #expect(AmountInput.normalized(AmountInput.grouped("15000") + "5") == "150005")
+    }
 }
 
 struct TransactionSummaryTests {

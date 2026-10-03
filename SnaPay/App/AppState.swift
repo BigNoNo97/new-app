@@ -129,6 +129,8 @@ final class AppState {
     }
 
     func handle(url: URL) async {
+        // "עוד…" on the quick-log card: the app opens on Home, where the payment waits.
+        if url.host == "quicklog" { return }
         do {
             let (kind, user) = try await auth.handleRedirect(url)
             userID = user

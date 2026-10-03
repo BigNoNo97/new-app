@@ -26,6 +26,12 @@ enum AppConfig {
     /// Shared with the widget and the quick-log intent.
     static let appGroup = "group.com.bignono97.snapay"
 
+    /// The ready-made "תיעוד ב-SnaPay" shortcut (an iCloud link: one tap and "Add Shortcut"). It
+    /// passes the Wallet transaction's amount, merchant and card to `LogPaymentIntent`, so the
+    /// automation only has to run it. iOS can't install the automation itself. Nil hides the button
+    /// and the guide falls back to adding the action by hand.
+    static let quickLogShortcutURL: URL? = nil
+
     static let authCallbackURL = URL(string: "snapay://auth-callback")!
     static let resetPasswordURL = URL(string: "snapay://reset-password")!
 

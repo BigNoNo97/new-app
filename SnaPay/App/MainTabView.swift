@@ -69,6 +69,7 @@ struct MainTabView: View {
             if phase == .active {
                 Task {
                     await store.syncQuickLog()
+                    await QuickLogLiveActivity.endResolved()
                     await app.loadPendingInvites()
                 }
             }
@@ -91,6 +92,7 @@ struct MainTabView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .quickLogDidChange)) { _ in
             store.reloadQuickLogInbox()
+            Task { await QuickLogLiveActivity.endResolved() }
         }
     }
 }

@@ -8,10 +8,10 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", "site/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml", ".github/workflows/pages.yml"]
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "signing/**", "site/**", ".github/workflows/testflight.yml", ".github/workflows/firebase.yml", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 concurrency:
@@ -57,7 +57,7 @@ jobs:
           fi
           changed=$(git diff --name-only "$BEFORE" "$AFTER")
           echo "$changed"
-          if echo "$changed" | grep -qvE '(\.md$|^docs/|^signing/|^firebase/|^\.github/workflows/(testflight|firebase)\.yml$)'; then
+          if echo "$changed" | grep -qvE '(\.md$|^docs/|^signing/|^site/|^firebase/|^\.github/workflows/(testflight|firebase|pages)\.yml$)'; then
             echo "app=true" >> "$GITHUB_OUTPUT"
           else
             echo "app=false" >> "$GITHUB_OUTPUT"

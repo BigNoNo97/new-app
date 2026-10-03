@@ -171,7 +171,7 @@ struct AddTransactionSheet: View {
     private var amountSection: some View {
         VStack(spacing: Spacing.xs) {
             HStack(alignment: .center, spacing: Spacing.sm) {
-                AmountText(text: amountText.isEmpty ? "0" : amountText, font: .system(size: 64, weight: .bold))
+                AmountText(text: amountText.isEmpty ? "0" : AmountInput.grouped(amountText), font: .system(size: 64, weight: .bold))
                     .environment(\.layoutDirection, .leftToRight)
                     .accessibilityIdentifier("add.amount")
                 RoundedRectangle(cornerRadius: 1.5)

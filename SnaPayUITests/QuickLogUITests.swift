@@ -42,7 +42,10 @@ final class QuickLogUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["quicklog.setupCard"].firstMatch.waitForExistence(timeout: 10), "Home invites to set up quick-log")
         tap(app.buttons["quicklog.setupCard.open"], in: app)
-        XCTAssertTrue(app.buttons["quicklog.openShortcuts"].waitForExistence(timeout: 5), "guide opens on the steps")
+        // The main button adds the ready-made shortcut first when there is one, then opens Shortcuts.
+        let addShortcut = app.buttons["quicklog.addShortcut"]
+        let openShortcuts = app.buttons["quicklog.openShortcuts"]
+        XCTAssertTrue(addShortcut.waitForExistence(timeout: 5) || openShortcuts.exists, "guide opens on the steps")
         screenshot(app, "quicklog-setup-light")
         tap(app.buttons["quicklog.alreadySet"], in: app)
         XCTAssertTrue(app.descendants(matching: .any)["quicklog.status.waiting"].firstMatch.waitForExistence(timeout: 5), "waits for the first payment")

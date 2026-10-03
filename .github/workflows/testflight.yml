@@ -16,7 +16,7 @@ name: TestFlight
 on:
   push:
     branches: [main]
-    paths-ignore: ["**.md", "docs/**", "firebase/**"]
+    paths-ignore: ["**.md", "docs/**", "firebase/**", "site/**"]
   workflow_dispatch:
 
 concurrency:
