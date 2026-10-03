@@ -34,6 +34,8 @@ targets:
     platform: iOS
     sources:
       - SnaPay
+      # The quick-log Live Activity's data and button intents, shared with the widget.
+      - Shared
     configFiles:
       Debug: Config/App.xcconfig
       Release: Config/App.xcconfig
@@ -68,6 +70,8 @@ targets:
         NSCameraUsageDescription: "SnaPay משתמשת במצלמה כדי לצלם קבלות ולמלא את פרטי ההוצאה אוטומטית."
         NSPhotoLibraryUsageDescription: "SnaPay ניגשת לתמונות כדי לצרף קבלה להוצאה."
         UIBackgroundModes: [remote-notification]
+        # The quick-log card that expands out of the Dynamic Island.
+        NSSupportsLiveActivities: true
         CFBundleURLTypes:
           - CFBundleURLName: com.bignono97.snapay
             CFBundleURLSchemes: [snapay]
@@ -98,6 +102,7 @@ targets:
     platform: iOS
     sources:
       - SnaPayWidget
+      - Shared
     dependencies:
       - package: SnaPayCore
     entitlements:
@@ -119,6 +124,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bignono97.snapay.widget
         TARGETED_DEVICE_FAMILY: "1"
+        # Shared/ compiles the Live Activity intents' work into the app only.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: $(inherited) SNAPAY_WIDGET
         PROVISIONING_PROFILE_SPECIFIER: $(SNAPAY_WIDGET_PROFILE)
         SWIFT_DEFAULT_ACTOR_ISOLATION: nonisolated
 

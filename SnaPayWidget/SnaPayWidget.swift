@@ -54,5 +54,6 @@ struct SnaPaySpendWidget: Widget {
 struct SnaPayWidgetBundle: WidgetBundle {
     var body: some Widget {
         SnaPaySpendWidget()
+        QuickLogActivityWidget()
     }
 }

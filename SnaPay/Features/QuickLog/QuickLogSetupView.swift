@@ -86,7 +86,7 @@ struct QuickLogSetupView: View {
                             actionRow(title: "תיעוד ב-SnaPay", subtitle: "קיצור מוכן")
                         }
                     }
-                    SetupStep(isLast: false, text: "באפליקציית **קיצורים**, עברו ל**אוטומציה**, לחצו על פלוס ובחרו **עסקה**.") {
+                    SetupStep(isLast: false, text: "באפליקציית **קיצורים**, עברו ל**אוטומציה**, לחצו על פלוס ובחרו **Wallet**.") {
                         HStack(spacing: Spacing.sm) {
                             Image(systemName: "creditcard")
                                 .font(.system(size: 17, weight: .medium))
@@ -94,18 +94,18 @@ struct QuickLogSetupView: View {
                                 .frame(width: 36, height: 36)
                                 .background(Color(uiColor: UIColor(hex: 0x3B82F6)), in: .rect(cornerRadius: 10))
                             VStack(alignment: .leading, spacing: 1) {
-                                Text("עסקה").font(.subheadline.weight(.bold))
-                                Text("כשאני מקיש על כרטיס ב-Wallet").font(.caption).foregroundStyle(Theme.textSecondary)
+                                Text("Wallet").font(.subheadline.weight(.bold))
+                                Text("כשמקישים על כרטיס ב-Wallet").font(.caption).foregroundStyle(Theme.textSecondary)
                             }
                             Spacer()
                             Image(systemName: "chevron.backward").font(.caption.weight(.semibold)).foregroundStyle(Theme.textTertiary)
                         }
                     }
                     SetupStep(isLast: false, text: shortcutURL == nil
-                              ? "סמנו את הכרטיסים שלכם ב-Wallet ובחרו **הפעלה מיידית**, כדי שלא תצטרכו לאשר כל פעם."
-                              : "סמנו את הכרטיסים שלכם ב-Wallet, בחרו **הפעלה מיידית** ולחצו **הבא**.") {
+                              ? "השאירו **כל כרטיס** (Any Card) ואת **Automation** דלוק, כדי שזה ירוץ לבד בלי לשאול."
+                              : "השאירו **כל כרטיס** (Any Card) ואת **Automation** דלוק, ולחצו **הבא**.") {
                         HStack {
-                            Text("הפעלה מיידית").font(.subheadline)
+                            Text("Automation").font(.subheadline)
                             Spacer()
                             RoundedRectangle(cornerRadius: 11)
                                 .fill(Theme.buttonPrimary)
@@ -120,7 +120,7 @@ struct QuickLogSetupView: View {
                             actionRow(title: "תיעוד ב-SnaPay", subtitle: "סכום · בית עסק")
                         }
                     } else {
-                        SetupStep(isLast: true, text: "הוסיפו את הפעולה **תיעוד תשלום** של SnaPay. הסכום ושם בית העסק יעברו אליה לבד.") {
+                        SetupStep(isLast: true, text: "הוסיפו את הפעולה **תיעוד תשלום** של SnaPay, ובכל שדה בחרו **Transaction**: סכום ← **Amount**, בית עסק ← **Merchant**, כרטיס ← **Card or Pass**.") {
                             actionRow(title: "תיעוד תשלום", subtitle: "סכום · בית עסק")
                         }
                     }

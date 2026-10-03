@@ -2,7 +2,7 @@ import Foundation
 import UserNotifications
 import SnaPayCore
 
-/// What the quick-log card shows, computed on the main actor and handed to the snippet view.
+/// What the quick-log card shows, computed on the main actor and handed to the Live Activity.
 nonisolated struct QuickLogCardModel: Sendable {
     nonisolated struct Choice: Sendable, Identifiable {
         let id: UUID
@@ -34,7 +34,7 @@ nonisolated struct QuickLogCardModel: Sendable {
 
 /// The work behind the quick-log intents. Runs in the app's process, with or without a window.
 enum QuickLogService {
-    /// Keys the snippet intent receives instead of a payment id.
+    /// What `capture` returns instead of a payment id when nothing was captured.
     enum Key {
         static let disabled = "disabled"
         static let signedOut = "signed-out"
@@ -119,7 +119,7 @@ enum QuickLogService {
         case Key.disabled:
             return .init(state: .message(title: "התיעוד בקליק כבוי", detail: "אפשר להפעיל אותו מחדש בפרופיל שב-SnaPay."))
         case Key.invalidAmount:
-            return .init(state: .message(title: "לא הצלחנו לקרוא את הסכום", detail: "בדקו שבאוטומציה, בשדה הסכום, נבחר המשתנה \"סכום\" של העסקה."))
+            return .init(state: .message(title: "לא הצלחנו לקרוא את הסכום", detail: "בדקו שבאוטומציה, בשדה הסכום, נבחר Transaction ובו Amount."))
         default:
             break
         }
