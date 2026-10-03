@@ -49,13 +49,17 @@ enum QuickLogLiveActivity {
 
     /// After a category was tapped: the "נשמר ב…" line with undo, then the card goes away.
     static func showSaved(paymentID: UUID) async {
-        guard let activity = Activity<QuickLogActivityAttributes>.activities.first(where: { $0.attributes.paymentID == paymentID }) else { return }
-        guard let state = state(for: paymentID), state.chosen != nil else {
-            await activity.end(nil, dismissalPolicy: .immediate)
+        // A loop, not first(where:): handing the activity to a (main-actor) closure would tie it to
+        // the main actor, and Swift 6 then refuses to pass it to end(_:dismissalPolicy:).
+        for activity in Activity<QuickLogActivityAttributes>.activities where activity.attributes.paymentID == paymentID {
+            guard let state = state(for: paymentID), state.chosen != nil else {
+                await activity.end(nil, dismissalPolicy: .immediate)
+                return
+            }
+            await activity.end(ActivityContent(state: state, staleDate: nil),
+                               dismissalPolicy: .after(.now.addingTimeInterval(savedLingers)))
             return
         }
-        await activity.end(ActivityContent(state: state, staleDate: nil),
-                           dismissalPolicy: .after(.now.addingTimeInterval(savedLingers)))
     }
 
     /// When the app opens: ends cards whose payment got a category (on Home, say) or is gone.
