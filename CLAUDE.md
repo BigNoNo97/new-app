@@ -44,6 +44,7 @@
 - צילומי המסך האחרונים מה-CI נמצאים גם בענף `ci-screenshots`. אפשר למשוך אותם עם `git fetch origin ci-screenshots` ולפתוח את הקבצים לבדיקה ויזואלית.
 - `Config/App.xcconfig` — הגדרות Firebase (ארבעה ערכים ציבוריים מ-`GoogleService-Info.plist`). הצינור כותב את `Config/Secrets.xcconfig` ממשתני הריפו.
 - `signing/` — פרופילי App Store לחתימה ידנית ב-`testflight.yml`. התעודה והמפתח נמצאים רק בסודות של GitHub.
+- `site/` — דפי מדיניות הפרטיות ותנאי השימוש (סטטיים, בעברית). ‏`pages.yml` מפרסם אותם ל-`https://bignono97.github.io/new-app/` בכל מיזוג ל-`main`. האפליקציה (`AppConfig.privacyURL`) ו-TestFlight מקשרים אליהם.
 - `docs/design/claude-design-prompt.md` — הפרומפט ל-Claude Design.
 - `docs/design/claude-design/` — העיצוב מ-Claude Design, והוא מקור האמת לכל מסך. בתיקייה:
   - `screens/<id>-light.jpg` ו-`screens/<id>-dark.jpg`: צילום של כל מסך בבהיר ובכהה.

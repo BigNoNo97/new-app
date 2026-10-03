@@ -1,0 +1,53 @@
+/* SnaPay's public pages (privacy, terms). Colors from docs/design/claude-design/design-tokens/tokens.json. */
+:root {
+  --bg-top: #F8FBFD;
+  --bg-bottom: #E4F5EC;
+  --text: #0E1A24;
+  --text-secondary: #43535F;
+  --brand-ink: #157A45;
+  --card: rgba(255, 255, 255, 0.80);
+  --stroke: rgba(16, 42, 62, 0.09);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-top: #050A12;
+    --bg-bottom: #06282B;
+    --text: #F2F6F8;
+    --text-secondary: #B3C0C8;
+    --brand-ink: #5BE69A;
+    --card: rgba(255, 255, 255, 0.07);
+    --stroke: rgba(255, 255, 255, 0.11);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(170deg, var(--bg-top), var(--bg-bottom)) fixed;
+  color: var(--text);
+  font: 17px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Arial, sans-serif;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  padding: 24px;
+}
+
+h1 { font-size: 28px; margin: 0 0 4px; }
+h2 { font-size: 19px; margin: 28px 0 8px; }
+p, li { color: var(--text-secondary); }
+ul { padding-inline-start: 20px; }
+a { color: var(--brand-ink); }
+.updated { margin: 0 0 16px; font-size: 15px; }
+.brand { font-weight: 700; color: var(--brand-ink); margin: 0 0 16px; }
