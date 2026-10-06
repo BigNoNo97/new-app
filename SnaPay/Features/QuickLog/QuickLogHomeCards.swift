@@ -68,6 +68,7 @@ private struct PendingCaptureRow: View {
                         .font(.footnote.weight(.semibold))
                         .foregroundStyle(Theme.brandInk)
                         .lineLimit(1)
+                        .accessibilityIdentifier("pending.suggested")
                 } else {
                     Text("Apple Pay · \(payment.capturedAt.formatted(.relative(presentation: .named).locale(Locale(identifier: "he_IL"))))")
                         .font(.footnote)

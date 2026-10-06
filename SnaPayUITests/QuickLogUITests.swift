@@ -14,7 +14,10 @@ final class QuickLogUITests: XCTestCase {
         screenshot(app, "home-pending-light")
 
         // "קפה לנדוור" is a coffee shop: the coffee category is picked for the user.
-        XCTAssertTrue(app.staticTexts["מוצע: ☕ קפה"].waitForExistence(timeout: 5), "Home shows the category picked for the user")
+        // Matched by identifier: SwiftUI wraps interpolated values in bidi isolation marks.
+        let suggested = app.staticTexts["pending.suggested"]
+        XCTAssertTrue(suggested.waitForExistence(timeout: 5), "Home shows the category picked for the user")
+        XCTAssertTrue(suggested.label.contains("קפה"))
         tap(app.buttons["pending.choose"], in: app)
         XCTAssertTrue(app.buttons["pending.category.קפה"].firstMatch.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["pending.category.קפה"].firstMatch.isSelected, "the picked category is preselected")
