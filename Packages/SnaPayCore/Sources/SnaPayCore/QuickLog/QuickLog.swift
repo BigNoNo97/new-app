@@ -13,6 +13,11 @@ public struct CapturedPayment: Codable, Identifiable, Hashable, Sendable {
     public var capturedAt: Date
     /// Set once the user picked a category.
     public var categoryID: UUID?
+    /// The user's note ("ארוחה עם דנה"), from the quick-log card or Home.
+    public var note: String?
+    /// The on-device model's guess, kept when neither the household's history nor
+    /// `MerchantCatalog` knew the merchant (see `QuickLogContext.likelyCategory`).
+    public var suggestedCategoryID: UUID?
     /// Stable id for server-side de-duplication (`transactions.external_id`).
     public var externalID: String
 
@@ -24,6 +29,8 @@ public struct CapturedPayment: Codable, Identifiable, Hashable, Sendable {
         card: String? = nil,
         capturedAt: Date = .now,
         categoryID: UUID? = nil,
+        note: String? = nil,
+        suggestedCategoryID: UUID? = nil,
         calendar: Calendar = .current
     ) {
         let cleanAmount = amount.rounded(scale: 2)
@@ -38,6 +45,8 @@ public struct CapturedPayment: Codable, Identifiable, Hashable, Sendable {
         self.card = cleanCard
         self.capturedAt = capturedAt
         self.categoryID = categoryID
+        self.note = Self.cleanNote(note)
+        self.suggestedCategoryID = suggestedCategoryID
         self.externalID = Self.makeExternalID(
             amount: cleanAmount, currency: cleanCurrency, merchant: cleanMerchant,
             card: cleanCard, capturedAt: capturedAt, calendar: calendar
@@ -49,7 +58,13 @@ public struct CapturedPayment: Codable, Identifiable, Hashable, Sendable {
     /// The draft the app saves once a category is chosen.
     public var draft: TransactionDraft {
         TransactionDraft(kind: .expense, amount: amount, currency: currency, categoryID: categoryID,
-                         merchant: merchant, occurredAt: capturedAt)
+                         merchant: merchant, note: note ?? "", occurredAt: capturedAt)
+    }
+
+    /// Trimmed, at most 500 characters, and `nil` when empty.
+    public static func cleanNote(_ note: String?) -> String? {
+        let trimmed = note?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(500))
     }
 
     /// Whether `other` is most likely the same payment reported twice (the automation can fire
@@ -119,6 +134,16 @@ public struct QuickLogInbox: Codable, Equatable, Sendable {
     public mutating func categorize(_ id: UUID, as categoryID: UUID) {
         guard let index = payments.firstIndex(where: { $0.id == id }) else { return }
         payments[index].categoryID = categoryID
+    }
+
+    public mutating func setNote(_ id: UUID, to note: String?) {
+        guard let index = payments.firstIndex(where: { $0.id == id }) else { return }
+        payments[index].note = CapturedPayment.cleanNote(note)
+    }
+
+    public mutating func setSuggestion(_ id: UUID, to categoryID: UUID?) {
+        guard let index = payments.firstIndex(where: { $0.id == id }) else { return }
+        payments[index].suggestedCategoryID = categoryID
     }
 
     /// Undo on the quick-log card: the payment waits for a category again.
@@ -202,8 +227,31 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
         remindsPendingCapture = try c.decodeIfPresent(Bool.self, forKey: .remindsPendingCapture) ?? true
     }
 
-    /// Categories to offer for `payment`, most likely first. A trip running on the payment's
-    /// date in the payment's currency always comes first.
+    /// The category to pick for the user, or `nil` when there's no good reason to pick one:
+    /// a trip running in the payment's currency, then what the household chose for this
+    /// merchant before, then `MerchantCatalog`, then the on-device model's guess.
+    public func likelyCategory(for payment: CapturedPayment, calendar: Calendar = .current) -> CategoryItem? {
+        let byID = Dictionary(categories.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        if let trip = categories.first(where: {
+            $0.isTrip && $0.tripCurrency == payment.currency && $0.isActiveTrip(on: payment.capturedAt, calendar: calendar)
+        }) {
+            return trip
+        }
+        let everyday = categories.filter { !$0.isTrip }
+        if suggester.knows(merchant: payment.merchant, among: everyday.map(\.id.uuidString)),
+           let top = suggester.suggest(for: payment.merchant, available: everyday.map(\.id.uuidString), count: 1).first,
+           let category = UUID(uuidString: top).flatMap({ byID[$0] }) {
+            return category
+        }
+        if let known = MerchantCatalog.category(forMerchant: payment.merchant, in: everyday) {
+            return known
+        }
+        return payment.suggestedCategoryID.flatMap { byID[$0] }.flatMap { $0.isTrip ? nil : $0 }
+    }
+
+    /// Categories to offer for `payment`, most likely first: `likelyCategory`, then the
+    /// household's usage. A trip running on the payment's date in the payment's currency always
+    /// comes first.
     public func suggestions(for payment: CapturedPayment, count: Int = 6, calendar: Calendar = .current) -> [CategoryItem] {
         let byID = Dictionary(categories.map { ($0.id.uuidString, $0) }, uniquingKeysWith: { first, _ in first })
         let active = categories.filter { $0.isTrip && $0.isActiveTrip(on: payment.capturedAt, calendar: calendar) }
@@ -216,7 +264,12 @@ public struct QuickLogContext: Codable, Equatable, Sendable {
             available: (everyday + otherTrips).map(\.id.uuidString),
             count: max(count - tripFirst.count, 0)
         ).compactMap { byID[$0] }
-        return Array((tripFirst + ranked).prefix(count))
+        var ordered = tripFirst + ranked
+        if tripFirst.isEmpty, let likely = likelyCategory(for: payment, calendar: calendar) {
+            ordered.removeAll { $0.id == likely.id }
+            ordered.insert(likely, at: 0)
+        }
+        return Array(ordered.prefix(count))
     }
 
     /// The transaction for a categorized payment. Throws `CurrencyConverterError.missingRate`

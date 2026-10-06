@@ -250,3 +250,106 @@ struct SuggesterBuildTests {
         #expect(rows == [MerchantCategoryRow(householdID: household, merchantKey: "aroma", categoryID: food, timesUsed: 3)])
     }
 }
+
+struct MerchantCatalogTests {
+    @Test(arguments: [
+        ("SHUFERSAL DEAL #123", MerchantCatalog.Kind.groceries),
+        ("רמי לוי שיווק השקמה", .groceries),
+        ("Wolt", .food),
+        ("מסעדת הדייג", .food),
+        ("AROMA TLV", .coffee),
+        ("סופר-פארם סניף 12", .health),
+        ("PAZ YELLOW", .car),
+        ("EL AL ISRAEL AIRLINES", .travel),
+        ("Booking.com", .travel),
+        ("CELLCOM", .telecom),
+        ("Cinema City Glilot", .entertainment),
+        ("IKEA NETANYA", .shopping),
+        ("H&M", .shopping),
+    ])
+    func recognizesKnownMerchants(merchant: String, kind: MerchantCatalog.Kind) {
+        #expect(MerchantCatalog.kind(for: merchant) == kind)
+    }
+
+    @Test(arguments: ["", "Dana Cohen", "פזית בע\"מ", "x"])
+    func leavesUnknownMerchants(merchant: String) {
+        #expect(MerchantCatalog.kind(for: merchant) == nil)
+    }
+
+    @Test func findsTheUsersCategoryByEmojiOrName() {
+        let household = UUID()
+        let renamed = CategoryItem(householdID: household, name: "אוכל", emoji: "🍕", color: "#000000")
+        let groceries = CategoryItem(householdID: household, name: "מכולת וסופר", emoji: "🥦", color: "#000000")
+        let categories = [renamed, groceries]
+        #expect(MerchantCatalog.category(for: .food, in: categories)?.id == renamed.id)
+        #expect(MerchantCatalog.category(for: .groceries, in: categories)?.id == groceries.id)
+        // No coffee category: coffee shops go to food.
+        #expect(MerchantCatalog.category(for: .coffee, in: categories)?.id == renamed.id)
+        #expect(MerchantCatalog.category(for: .travel, in: categories) == nil)
+    }
+}
+
+struct LikelyCategoryTests {
+    let household = UUID()
+
+    func category(_ name: String, emoji: String, order: Int) -> CategoryItem {
+        CategoryItem(householdID: household, name: name, emoji: emoji, color: "#000000", sortOrder: order)
+    }
+
+    func context(_ categories: [CategoryItem], suggester: CategorySuggester = .init()) -> QuickLogContext {
+        QuickLogContext(userID: UUID(), householdID: household, mainCurrency: "ILS", cardFeePercent: 0, isEnabled: true,
+                        categories: categories, rates: nil, suggester: suggester)
+    }
+
+    @Test func catalogPicksForANewMerchant() {
+        let food = category("אוכל ומסעדות", emoji: "🍔", order: 0)
+        let groceries = category("סופר", emoji: "🛒", order: 1)
+        let payment = CapturedPayment(amount: 80, currency: "ILS", merchant: "Shufersal Online")
+        let quickLog = context([food, groceries])
+        #expect(quickLog.likelyCategory(for: payment)?.id == groceries.id)
+        #expect(quickLog.suggestions(for: payment).first?.id == groceries.id)
+    }
+
+    @Test func householdHistoryBeatsTheCatalog() {
+        let food = category("אוכל ומסעדות", emoji: "🍔", order: 0)
+        let groceries = category("סופר", emoji: "🛒", order: 1)
+        var suggester = CategorySuggester()
+        suggester.record(merchant: "Shufersal Online", categoryID: food.id.uuidString)
+        let payment = CapturedPayment(amount: 80, currency: "ILS", merchant: "Shufersal Online")
+        #expect(context([food, groceries], suggester: suggester).likelyCategory(for: payment)?.id == food.id)
+    }
+
+    @Test func modelGuessIsTheLastResort() {
+        let food = category("אוכל ומסעדות", emoji: "🍔", order: 0)
+        let gifts = category("מתנות", emoji: "🎁", order: 1)
+        var payment = CapturedPayment(amount: 80, currency: "ILS", merchant: "Dana Cohen")
+        let quickLog = context([food, gifts])
+        #expect(quickLog.likelyCategory(for: payment) == nil)
+        payment.suggestedCategoryID = gifts.id
+        #expect(quickLog.likelyCategory(for: payment)?.id == gifts.id)
+        #expect(quickLog.suggestions(for: payment).map(\.id) == [gifts.id, food.id])
+    }
+}
+
+struct CapturedPaymentNoteTests {
+    @Test func noteIsCleanedAndReachesTheTransaction() throws {
+        var inbox = QuickLogInbox()
+        let payment = inbox.add(CapturedPayment(amount: 50, currency: "ILS", merchant: "Aroma"))
+        inbox.setNote(payment.id, to: "  ארוחה עם דנה \n")
+        #expect(inbox.payment(payment.id)?.note == "ארוחה עם דנה")
+        #expect(inbox.payment(payment.id)?.draft.note == "ארוחה עם דנה")
+        inbox.setNote(payment.id, to: "   ")
+        #expect(inbox.payment(payment.id)?.note == nil)
+    }
+
+    @Test func olderInboxFilesDecodeWithoutTheNewFields() throws {
+        let id = UUID()
+        let json = """
+        {"payments":[{"id":"\(id.uuidString)","amount":12,"currency":"ILS","merchant":"Aroma",
+        "capturedAt":0,"externalID":"applepay-1"}]}
+        """
+        let inbox = try JSONDecoder().decode(QuickLogInbox.self, from: Data(json.utf8))
+        #expect(inbox.payment(id)?.note == nil)
+        #expect(inbox.payment(id)?.suggestedCategoryID == nil)
+    }
+}

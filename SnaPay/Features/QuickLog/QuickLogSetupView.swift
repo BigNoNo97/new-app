@@ -13,6 +13,7 @@ struct QuickLogSetupView: View {
     /// Set once the ready-made shortcut's link was opened; the main button then opens Shortcuts.
     @AppStorage("quickLog.shortcutOffered") private var shortcutOffered = false
     private let shortcutURL = AppConfig.quickLogShortcutURL
+    @State private var isShowingDiagnostics = false
 
     init(store: TransactionStore) {
         self.store = store
@@ -36,6 +37,7 @@ struct QuickLogSetupView: View {
         .background { AppBackground() }
         .animation(.easeInOut(duration: 0.25), value: phase)
         .task { store.reloadQuickLogInbox() }
+        .sheet(isPresented: $isShowingDiagnostics) { QuickLogDiagnosticsView() }
     }
 
     /// Close button, progress line (no step numbers) and "skip for now".
@@ -247,15 +249,19 @@ struct QuickLogSetupView: View {
         }
     }
 
+    /// A long press on the status opens the diagnostics log (hidden: for troubleshooting).
     @ViewBuilder
     private var statusChip: some View {
-        if let first = store.quickLogFirstCaptureAt {
-            chip(color: Theme.brand, text: "התשלום הראשון נקלט ב\(first.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.wide).hour().minute()))")
-                .accessibilityIdentifier("quicklog.status")
-        } else {
-            chip(color: Theme.warning, text: "מחכה לתשלום הראשון")
-                .accessibilityIdentifier("quicklog.status.waiting")
+        Group {
+            if let first = store.quickLogFirstCaptureAt {
+                chip(color: Theme.brand, text: "התשלום הראשון נקלט ב\(first.formatted(Date.FormatStyle(locale: Locale(identifier: "he_IL")).day().month(.wide).hour().minute()))")
+                    .accessibilityIdentifier("quicklog.status")
+            } else {
+                chip(color: Theme.warning, text: "מחכה לתשלום הראשון")
+                    .accessibilityIdentifier("quicklog.status.waiting")
+            }
         }
+        .onLongPressGesture { isShowingDiagnostics = true }
     }
 
     private func chip(color: Color, text: String) -> some View {

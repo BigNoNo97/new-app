@@ -334,6 +334,17 @@ final class TransactionStore {
         pendingCaptures.removeAll { $0.id == payment.id }
     }
 
+    /// The category picked for the user, shown preselected (`QuickLogContext.likelyCategory`).
+    func likelyCategory(for payment: CapturedPayment) -> CategoryItem? {
+        quickLogContext?.likelyCategory(for: payment, calendar: calendar)
+    }
+
+    /// Keeps the note typed for a captured payment; it goes with it into the transaction.
+    func setCaptureNote(_ payment: CapturedPayment, note: String) {
+        QuickLogStorage.updateInbox { $0.setNote(payment.id, to: note) }
+        reloadQuickLogInbox()
+    }
+
     func quickLogSuggestions(for payment: CapturedPayment) -> [CategoryItem] {
         quickLogContext?.suggestions(for: payment, calendar: calendar) ?? Array(categories(for: .expense).prefix(6))
     }

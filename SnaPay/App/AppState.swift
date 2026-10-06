@@ -18,6 +18,12 @@ enum AppRoute: Equatable {
     case connectionProblem
 }
 
+/// A captured payment the quick-log card asked to open.
+struct QuickLogTarget: Equatable {
+    let paymentID: UUID
+    let focusesNote: Bool
+}
+
 /// Decides which screen the app shows and runs the account flows.
 @Observable
 final class AppState {
@@ -27,6 +33,9 @@ final class AppState {
     var linkError: AuthFailure?
     /// Invites to a shared household waiting for my answer (shown as a sheet on the main screen).
     private(set) var pendingInvites: [PendingInvite] = []
+    /// A captured payment to open, from "עוד…" or the note button on the quick-log card
+    /// (`snapay://quicklog/<id>?note=1`). The main screen opens it and clears this.
+    var quickLogTarget: QuickLogTarget?
 
     private let auth: AuthServicing
     private let account: AccountRepository
@@ -129,8 +138,13 @@ final class AppState {
     }
 
     func handle(url: URL) async {
-        // "עוד…" on the quick-log card: the app opens on Home, where the payment waits.
-        if url.host == "quicklog" { return }
+        // "עוד…" and the note button on the quick-log card open the payment.
+        if url.host == "quicklog" {
+            if let id = UUID(uuidString: url.lastPathComponent) {
+                quickLogTarget = QuickLogTarget(paymentID: id, focusesNote: url.query?.contains("note=1") == true)
+            }
+            return
+        }
         do {
             let (kind, user) = try await auth.handleRedirect(url)
             userID = user

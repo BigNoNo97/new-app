@@ -23,6 +23,13 @@ enum AppTab: CaseIterable, Hashable {
     }
 }
 
+/// A captured payment opened from the quick-log card.
+struct OpenedCapture: Identifiable {
+    let payment: CapturedPayment
+    let focusesNote: Bool
+    var id: UUID { payment.id }
+}
+
 /// The signed-in app: tab content with the floating bottom bar.
 struct MainTabView: View {
     @Environment(AppState.self) private var app
@@ -32,6 +39,9 @@ struct MainTabView: View {
     @State private var shownInvite: PendingInvite?
     /// Invites the user put off with "לא עכשיו" (asked again on the next launch).
     @State private var postponedInvites: Set<UUID> = []
+    /// Opened from the quick-log card: a payment still waiting, or one already filed.
+    @State private var openedCapture: OpenedCapture?
+    @State private var editedTransaction: TransactionRow?
 
     var body: some View {
         if let store = app.store {
@@ -90,9 +100,30 @@ struct MainTabView: View {
                 shownInvite = next
             }
         }
+        // Not endResolved here: intents post this from the background too, while their card shows.
         .onReceive(NotificationCenter.default.publisher(for: .quickLogDidChange)) { _ in
             store.reloadQuickLogInbox()
-            Task { await QuickLogLiveActivity.endResolved() }
+        }
+        .onChange(of: app.quickLogTarget, initial: true) { _, target in
+            guard let target else { return }
+            app.quickLogTarget = nil
+            selection = .home
+            Task {
+                await store.syncQuickLog()
+                if let payment = store.pendingCaptures.first(where: { $0.id == target.paymentID }) {
+                    openedCapture = OpenedCapture(payment: payment, focusesNote: target.focusesNote)
+                } else if let row = store.transactions.first(where: { $0.id == target.paymentID }) {
+                    // Filed from the card already: the same id, now a transaction.
+                    editedTransaction = row
+                }
+            }
+        }
+        .sheet(item: $openedCapture) { opened in
+            CaptureCategorySheet(store: store, payment: opened.payment, focusesNote: opened.focusesNote)
+        }
+        .sheet(item: $editedTransaction) { row in
+            AddTransactionSheet(store: store, editing: row)
+                .presentationDetents([.large])
         }
     }
 }

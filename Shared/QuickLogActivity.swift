@@ -30,6 +30,41 @@ nonisolated struct QuickLogActivityAttributes: ActivityAttributes {
         /// Up to four suggestions, the likeliest first.
         var choices: [Choice]
         var chosen: Choice?
+        /// The category picked for the user (`QuickLogContext.likelyCategory`), shown with
+        /// "אישור". Also the first of `choices`.
+        var suggested: Choice?
+        var hasNote: Bool
+
+        init(merchant: String, amount: String, mainAmount: String, card: String, conversion: String?,
+             choices: [Choice], chosen: Choice?, suggested: Choice?, hasNote: Bool) {
+            self.merchant = merchant
+            self.amount = amount
+            self.mainAmount = mainAmount
+            self.card = card
+            self.conversion = conversion
+            self.choices = choices
+            self.chosen = chosen
+            self.suggested = suggested
+            self.hasNote = hasNote
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case merchant, amount, mainAmount, card, conversion, choices, chosen, suggested, hasNote
+        }
+
+        /// A card started by an older build lacks the newer keys.
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            merchant = try c.decode(String.self, forKey: .merchant)
+            amount = try c.decode(String.self, forKey: .amount)
+            mainAmount = try c.decode(String.self, forKey: .mainAmount)
+            card = try c.decode(String.self, forKey: .card)
+            conversion = try c.decodeIfPresent(String.self, forKey: .conversion)
+            choices = try c.decode([Choice].self, forKey: .choices)
+            chosen = try c.decodeIfPresent(Choice.self, forKey: .chosen)
+            suggested = try c.decodeIfPresent(Choice.self, forKey: .suggested)
+            hasNote = try c.decodeIfPresent(Bool.self, forKey: .hasNote) ?? false
+        }
     }
 
     let paymentID: UUID

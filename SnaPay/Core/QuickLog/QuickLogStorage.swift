@@ -12,8 +12,10 @@ extension Notification.Name {
 ///   Intents add and categorize; `TransactionStore` turns categorized ones into transactions.
 /// - `quicklog-context.json`: what an intent needs without opening the app (user, household,
 ///   categories, rates, suggestion history). Written by `TransactionStore` on every save.
+/// - `quicklog-log.json`: the last few quick-log events (capture, Live Activity started or
+///   ended, and why), shown under Profile → תיעוד בקליק → יומן אבחון.
 ///
-/// Both are written with file protection that still allows access while the phone is locked
+/// All are written with file protection that still allows access while the phone is locked
 /// (after the first unlock), since Apple Pay works from the lock screen.
 enum QuickLogStorage {
     private static var folder: URL {
@@ -25,6 +27,29 @@ enum QuickLogStorage {
 
     private static var inboxURL: URL { folder.appendingPathComponent("quicklog-inbox.json") }
     private static var contextURL: URL { folder.appendingPathComponent("quicklog-context.json") }
+    private static var logURL: URL { folder.appendingPathComponent("quicklog-log.json") }
+
+    nonisolated struct LogEntry: Codable, Hashable, Sendable {
+        let date: Date
+        let text: String
+    }
+
+    static let logCapacity = 50
+
+    /// Adds a line to the diagnostics log, dropping the oldest beyond `logCapacity`.
+    static func log(_ text: String) {
+        var entries = loadLog()
+        entries.append(LogEntry(date: .now, text: text))
+        if entries.count > logCapacity {
+            entries.removeFirst(entries.count - logCapacity)
+        }
+        write(entries, to: logURL)
+    }
+
+    /// Oldest first.
+    static func loadLog() -> [LogEntry] {
+        read([LogEntry].self, from: logURL) ?? []
+    }
 
     static func loadInbox() -> QuickLogInbox {
         read(QuickLogInbox.self, from: inboxURL) ?? QuickLogInbox()
@@ -61,6 +86,7 @@ enum QuickLogStorage {
     static func erase() {
         try? FileManager.default.removeItem(at: inboxURL)
         try? FileManager.default.removeItem(at: contextURL)
+        try? FileManager.default.removeItem(at: logURL)
     }
 
     private static func read<T: Decodable>(_ type: T.Type, from url: URL) -> T? {

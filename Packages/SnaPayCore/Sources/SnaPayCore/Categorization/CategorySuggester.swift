@@ -25,6 +25,12 @@ public struct CategorySuggester: Codable, Equatable, Sendable {
         overallUsage[categoryID, default: 0] += 1
     }
 
+    /// Whether the household filed `merchant` under one of `available` before.
+    public func knows(merchant: String, among available: [String]) -> Bool {
+        let history = merchantHistory[Self.normalize(merchant)] ?? [:]
+        return available.contains { history[$0, default: 0] > 0 }
+    }
+
     /// Up to `count` category ids, most likely first. Only ids in `available` are returned,
     /// and ties keep the order of `available`.
     public func suggest(for merchant: String, available: [String], count: Int = 4) -> [String] {
