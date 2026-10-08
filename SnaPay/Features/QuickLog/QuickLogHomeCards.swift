@@ -63,16 +63,24 @@ private struct PendingCaptureRow: View {
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.textPrimary)
                     .lineLimit(1)
-                Text("Apple Pay · \(payment.capturedAt.formatted(.relative(presentation: .named).locale(Locale(identifier: "he_IL"))))")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.textSecondary)
-                    .lineLimit(1)
+                if let likely = store.likelyCategory(for: payment) {
+                    Text("מוצע: \(likely.emoji) \(likely.name)")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.brandInk)
+                        .lineLimit(1)
+                        .accessibilityIdentifier("pending.suggested")
+                } else {
+                    Text("Apple Pay · \(payment.capturedAt.formatted(.relative(presentation: .named).locale(Locale(identifier: "he_IL"))))")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.textSecondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: Spacing.s)
             VStack(alignment: .trailing, spacing: 6) {
                 AmountText(text: Money.string(payment.amount, currency: payment.currency, alwaysShowCents: true), font: .body.weight(.bold))
                 Button(action: onChoose) {
-                    Text("בחירת קטגוריה")
+                    Text(store.likelyCategory(for: payment) == nil ? "בחירת קטגוריה" : "אישור או שינוי")
                         .font(.footnote.weight(.bold))
                         .foregroundStyle(Theme.brandInk)
                         .padding(.horizontal, 10)
@@ -91,14 +99,28 @@ private struct PendingCaptureRow: View {
     }
 }
 
-/// Every category for a captured payment, the likeliest four first.
+/// Every category for a captured payment, the likeliest four first, with the category picked for
+/// the user already selected, and a note. "שמירה" files it.
 struct CaptureCategorySheet: View {
     @Environment(\.dismiss) private var dismiss
     let store: TransactionStore
     let payment: CapturedPayment
+    /// Opened from the note button on the quick-log card.
+    let focusesNote: Bool
+    @State private var selected: UUID?
+    @State private var note: String
     @State private var isSaving = false
+    @FocusState private var isNoteFocused: Bool
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: 4)
+
+    init(store: TransactionStore, payment: CapturedPayment, focusesNote: Bool = false) {
+        self.store = store
+        self.payment = payment
+        self.focusesNote = focusesNote
+        _selected = State(initialValue: store.likelyCategory(for: payment)?.id)
+        _note = State(initialValue: payment.note ?? "")
+    }
 
     var body: some View {
         ScrollView {
@@ -119,8 +141,22 @@ struct CaptureCategorySheet: View {
                     AmountText(text: Money.string(payment.amount, currency: payment.currency, alwaysShowCents: true), font: .title2.weight(.bold))
                 }
 
-                section("מוצעות", categories: store.quickLogSuggestions(for: payment).prefix(4).map { $0 }, highlightsFirst: true)
-                section("כל הקטגוריות", categories: store.categories(for: .expense), highlightsFirst: false)
+                HStack(spacing: Spacing.sm) {
+                    Label("הערה", systemImage: "doc.text")
+                        .foregroundStyle(Theme.textPrimary)
+                    TextField("הוספת הערה", text: $note)
+                        .multilineTextAlignment(.trailing)
+                        .focused($isNoteFocused)
+                        .submitLabel(.done)
+                        .accessibilityIdentifier("pending.note")
+                }
+                .font(.body)
+                .padding(.horizontal, Spacing.m)
+                .frame(minHeight: 50)
+                .glassSurface(radius: Radius.field)
+
+                section("מוצעות", categories: store.quickLogSuggestions(for: payment).prefix(4).map { $0 })
+                section("כל הקטגוריות", categories: store.categories(for: .expense))
 
                 Button(role: .destructive) {
                     store.discardCapture(payment)
@@ -138,24 +174,52 @@ struct CaptureCategorySheet: View {
             .padding(.horizontal, Spacing.gutter)
             .padding(.bottom, Spacing.l)
         }
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                save()
+            } label: {
+                Text(saveTitle)
+            }
+            .buttonStyle(.primary)
+            .disabled(selected == nil || isSaving)
+            .padding(.horizontal, Spacing.gutter)
+            .padding(.bottom, Spacing.s)
+            .accessibilityIdentifier("pending.save")
+        }
         .designSheet()
         .presentationDetents([.large])
+        .onAppear {
+            if focusesNote { isNoteFocused = true }
+        }
     }
 
-    private func section(_ title: LocalizedStringKey, categories: [CategoryItem], highlightsFirst: Bool) -> some View {
+    private var saveTitle: String {
+        guard let selected, let category = store.categories(for: .expense).first(where: { $0.id == selected }) else {
+            return "בחרו קטגוריה"
+        }
+        return "שמירה ב\(category.name)"
+    }
+
+    private func save() {
+        guard let selected, !isSaving else { return }
+        isSaving = true
+        store.setCaptureNote(payment, note: note)
+        Task {
+            await store.categorizeCapture(payment, as: selected)
+            dismiss()
+        }
+    }
+
+    private func section(_ title: LocalizedStringKey, categories: [CategoryItem]) -> some View {
         VStack(alignment: .leading, spacing: Spacing.s) {
             Text(title)
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.textSecondary)
             LazyVGrid(columns: columns, spacing: Spacing.s) {
-                ForEach(Array(categories.enumerated()), id: \.element.id) { index, category in
+                ForEach(categories) { category in
+                    let isSelected = category.id == selected
                     Button {
-                        guard !isSaving else { return }
-                        isSaving = true
-                        Task {
-                            await store.categorizeCapture(payment, as: category.id)
-                            dismiss()
-                        }
+                        selected = category.id
                     } label: {
                         VStack(spacing: 6) {
                             CategoryBadge(category: category, size: 40)
@@ -169,12 +233,13 @@ struct CaptureCategorySheet: View {
                         .frame(maxWidth: .infinity, minHeight: 88)
                         .glassSurface(radius: 18)
                         .overlay {
-                            if highlightsFirst && index == 0 {
+                            if isSelected {
                                 RoundedRectangle(cornerRadius: 18).strokeBorder(Theme.brand, lineWidth: 2)
                             }
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityAddTraits(isSelected ? .isSelected : [])
                     .accessibilityIdentifier("pending.category.\(category.name)")
                 }
             }

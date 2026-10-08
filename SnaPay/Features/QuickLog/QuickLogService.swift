@@ -22,6 +22,9 @@ nonisolated struct QuickLogCardModel: Sendable {
         let conversion: String?
         let choices: [Choice]
         let chosen: Choice?
+        /// Picked for the user (history, `MerchantCatalog` or the on-device model).
+        let suggested: Choice?
+        let hasNote: Bool
     }
 
     nonisolated enum State: Sendable {
@@ -58,11 +61,34 @@ enum QuickLogService {
             card: card
         )
         let kept = QuickLogStorage.updateInbox { $0.add(payment) }
+        QuickLogStorage.log("נקלט \(String(kept.id.uuidString.prefix(8))) · \(kept.merchant)\(kept.id == payment.id ? "" : " (כפול)")")
         NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
         if context.remindsPendingCapture && kept.id == payment.id {
             PendingCaptureReminder.schedule(for: kept)
         }
         return kept.id.uuidString
+    }
+
+    /// When neither the household's history nor `MerchantCatalog` knows the merchant, asks the
+    /// on-device model and keeps its guess on the payment. Returns whether a guess was added.
+    static func guessCategoryIfNeeded(paymentID: UUID) async -> Bool {
+        guard let context = QuickLogStorage.loadContext(),
+              let payment = QuickLogStorage.loadInbox().payment(paymentID),
+              payment.categoryID == nil, payment.suggestedCategoryID == nil,
+              context.likelyCategory(for: payment) == nil else { return false }
+        let everyday = context.categories.filter { !$0.isTrip }
+        guard let name = await CategoryModel.guess(merchant: payment.merchant, among: everyday.map(\.name)),
+              let category = everyday.first(where: { $0.name == name }) else { return false }
+        QuickLogStorage.updateInbox { $0.setSuggestion(paymentID, to: category.id) }
+        QuickLogStorage.log("ניחוש המודל: \(category.name)")
+        NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
+        return true
+    }
+
+    /// Saves the note typed for a captured payment.
+    static func setNote(paymentID: UUID, note: String) {
+        QuickLogStorage.updateInbox { $0.setNote(paymentID, to: note) }
+        NotificationCenter.default.post(name: .quickLogDidChange, object: nil)
     }
 
     /// Files the payment under the category the user tapped, then tries to upload it so a
@@ -129,6 +155,7 @@ enum QuickLogService {
             return .init(state: .message(title: "התשלום כבר נשמר", detail: "אפשר לראות ולערוך אותו ב-SnaPay."))
         }
         let choices = context.suggestions(for: payment, count: 4).map(choice)
+        let suggested = context.likelyCategory(for: payment).map(choice)
         let chosen = payment.categoryID.flatMap { id in context.categories.first { $0.id == id } }.map(choice)
         let conversionValue = context.conversion(for: payment)
         let conversion = conversionValue.map {
@@ -144,7 +171,9 @@ enum QuickLogService {
             card: payment.card ?? "Apple Pay",
             conversion: conversion,
             choices: choices,
-            chosen: chosen
+            chosen: chosen,
+            suggested: suggested,
+            hasNote: payment.note != nil
         )))
     }
 

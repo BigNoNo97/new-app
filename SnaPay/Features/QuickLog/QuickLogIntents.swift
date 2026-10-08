@@ -34,6 +34,10 @@ struct LogPaymentIntent: LiveActivityIntent {
     func perform() async throws -> some IntentResult {
         let key = await QuickLogService.capture(amountText: amount, merchant: merchant, card: card)
         await QuickLogLiveActivity.present(key: key)
+        // The card shows right away; a slower guess from the on-device model updates it.
+        if let id = UUID(uuidString: key), await QuickLogService.guessCategoryIfNeeded(paymentID: id) {
+            await QuickLogLiveActivity.refresh(paymentID: id)
+        }
         return .result()
     }
 }
